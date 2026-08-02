@@ -1,7 +1,7 @@
 {
-  "name": "Lotería PR Analytics",
+  "name": "Lotería PR Analytics V4.4",
   "short_name": "Lotería PR",
-  "description": "Análisis estadístico, historial, predicción y centro de datos para Lotería PR.",
+  "description": "Dashboard inteligente, señales dinámicas, predicción y ranking.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
