@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#06101f" />
   <meta name="description" content="Suite modular de análisis estadístico para juegos de Lotería PR." />
-  <title>Lotería PR · V4.0 iPhone</title>
+  <title>Lotería PR · V4.1 Centro de Datos</title>
   <style><style>
 :root{--bg:#06101f;--panel:#0d1b2d;--panel2:#10243c;--line:#203855;--text:#f4f7fb;--muted:#91a4ba;--cyan:#23d6d1;--orange:#ffb020;--red:#ff5c63;--green:#35d07f;--purple:#a987ff;--shadow:0 18px 60px rgba(0,0,0,.28);--r:18px}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0,#102a49 0,transparent 34%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
@@ -150,11 +150,26 @@
     .backup-banner{padding:12px 14px;border-radius:13px;background:linear-gradient(135deg,rgba(66,230,155,.10),rgba(35,214,209,.08));border:1px solid rgba(66,230,155,.22);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
     @media(max-width:760px){.health-grid{grid-template-columns:1fr}}
 
+
+    .data-status{display:flex;align-items:center;gap:10px;padding:14px;border-radius:14px;border:1px solid var(--line);background:#091827}
+    .data-light{width:14px;height:14px;border-radius:50%;background:#7d8b99;box-shadow:0 0 0 7px rgba(125,139,153,.08)}
+    .data-light.ok{background:#42e69b;box-shadow:0 0 0 7px rgba(66,230,155,.10)}
+    .data-light.error{background:#ff6f91;box-shadow:0 0 0 7px rgba(255,111,145,.10)}
+    .data-light.busy{background:#ffcf70;box-shadow:0 0 0 7px rgba(255,207,112,.10);animation:dataPulse 1s ease-in-out infinite}
+    @keyframes dataPulse{50%{transform:scale(1.18)}}
+    .sync-log{display:grid;gap:8px;max-height:390px;overflow:auto}
+    .sync-entry{display:grid;grid-template-columns:110px 90px 1fr;gap:10px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#081522}
+    .sync-entry.ok{border-left:4px solid #42e69b}.sync-entry.error{border-left:4px solid #ff6f91}.sync-entry.info{border-left:4px solid #23d6d1}
+    .source-card{padding:14px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(145deg,#091827,#07131f)}
+    .source-card code{display:block;margin-top:8px;padding:9px;border-radius:9px;background:#06111c;overflow:auto}
+    .sync-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    @media(max-width:700px){.sync-entry{grid-template-columns:1fr}.sync-entry span{display:block}}
+
 </style>>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Arquitectura modular interna · V4.0</small></div></div>
+    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Centro de Datos · V4.1</small></div></div>
     <div class="top-actions">
       <button class="btn" id="exportBtn">⬇ <span>Respaldo</span></button><button class="btn" id="excelBtn">▦ <span>Excel</span></button><button class="btn" id="pdfBtn">▣ <span>PDF</span></button><button class="btn" id="themeBtn">◐ <span>Tema</span></button>
       <label class="btn">⬆ <span>Importar</span><input id="importFile" type="file" accept="application/json" hidden></label>
@@ -175,7 +190,7 @@
         <div><span class="sub">Sorteos registrados</span><div class="metric cyan" id="drawCount">0</div></div>
       </section>
       <section id="view"></section>
-      <footer class="footer">Lotería PR V4.0 iPhone · Módulos internos en un solo archivo.</footer>
+      <footer class="footer">Lotería PR V4.1 · Centro de Datos y sincronización segura.</footer>
     </main>
   </div>
 </div>
@@ -456,6 +471,129 @@ const THEME_KEY='loteria-pr-theme';
     </div>`;
   }
 
+
+  const SYNC_META_KEY='loteria-pr-v4-sync-meta';
+  const SYNC_LOG_KEY='loteria-pr-v4-sync-log';
+  let syncBusy=false;
+
+  function syncConfig(){
+    const c=window.LoteriaConfig?.current||{};
+    return {
+      workerUrl:String(c.workerUrl||''),
+      autoSync:Boolean(c.autoSync),
+      syncIntervalMinutes:Number(c.syncIntervalMinutes||30),
+      autoBackup:c.autoBackup!==false
+    };
+  }
+  function syncMeta(){try{return JSON.parse(localStorage.getItem(SYNC_META_KEY)||'{}')}catch{return {}}}
+  function setSyncMeta(next){localStorage.setItem(SYNC_META_KEY,JSON.stringify({...syncMeta(),...next}))}
+  function getSyncLog(){try{return JSON.parse(localStorage.getItem(SYNC_LOG_KEY)||'[]')}catch{return []}}
+  function addSyncLog(status,message,detail=''){
+    const log=getSyncLog();
+    log.unshift({id:crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`,time:new Date().toISOString(),status,message,detail});
+    localStorage.setItem(SYNC_LOG_KEY,JSON.stringify(log.slice(0,100)));
+  }
+  function formatSyncTime(value){
+    if(!value)return 'Nunca';
+    try{return new Intl.DateTimeFormat('es-PR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value))}catch{return value}
+  }
+  function normalizeRemoteResult(item){
+    const gameAliases={
+      pega3_dia:'pega3_dia',p3d:'pega3_dia','pega 3 dia':'pega3_dia','pega 3 día':'pega3_dia',
+      pega3_noche:'pega3_noche',p3n:'pega3_noche','pega 3 noche':'pega3_noche',
+      pega4_dia:'pega4_dia',p4d:'pega4_dia','pega 4 dia':'pega4_dia','pega 4 día':'pega4_dia',
+      pega4_noche:'pega4_noche',p4n:'pega4_noche','pega 4 noche':'pega4_noche',
+      loto:'loto',revancha:'revancha',powerball:'powerball',pb:'powerball'
+    };
+    const rawGame=String(item?.game||item?.juego||'').trim().toLowerCase();
+    const game=gameAliases[rawGame]||rawGame;
+    if(!GAMES[game])return {ok:false,error:`Juego no reconocido: ${rawGame||'vacío'}`};
+    const date=String(item?.date||item?.fecha||'').slice(0,10);
+    const numbers=Array.isArray(item?.numbers)?item.numbers.map(Number):parseNums(String(item?.numbers||item?.numeros||item?.resultado||''));
+    const rawBonus=item?.bonus??item?.adicional??item?.powerball??null;
+    const bonus=rawBonus===''||rawBonus==null?null:Number(rawBonus);
+    const error=validate(GAMES[game],numbers,bonus);
+    if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date))return {ok:false,error:'Fecha inválida'};
+    if(error)return {ok:false,error};
+    return {ok:true,value:{game,date,numbers,bonus,source:item?.source||item?.fuente||'worker'}};
+  }
+  function importRemoteResults(payload){
+    const rows=Array.isArray(payload)?payload:Array.isArray(payload?.results)?payload.results:[];
+    let added=0,duplicates=0,invalid=0;
+    const errors=[];
+    rows.forEach(item=>{
+      const parsed=normalizeRemoteResult(item);
+      if(!parsed.ok){invalid++;if(errors.length<5)errors.push(parsed.error);return}
+      const x=parsed.value;
+      const duplicate=state.draws[x.game].some(d=>d.date===x.date&&JSON.stringify(d.numbers)===JSON.stringify(x.numbers)&&d.bonus===x.bonus);
+      if(duplicate){duplicates++;return}
+      state.draws[x.game].push({
+        id:crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`,
+        date:x.date,numbers:x.numbers,bonus:x.bonus,source:x.source,syncedAt:new Date().toISOString()
+      });
+      added++;
+    });
+    if(added)save();
+    return {received:rows.length,added,duplicates,invalid,errors};
+  }
+  function autoBackupBeforeSync(){
+    const cfg=syncConfig();
+    if(!cfg.autoBackup)return;
+    localStorage.setItem('loteria-pr-v4-pre-sync-backup',JSON.stringify({createdAt:new Date().toISOString(),state}));
+  }
+  async function testWorkerConnection(){
+    const cfg=syncConfig();
+    if(!cfg.workerUrl)throw new Error('Escribe y guarda primero la URL del Worker.');
+    const result=await window.LoteriaSync.health();
+    if(!result.ok)throw new Error(result.error||'No se pudo conectar.');
+    setSyncMeta({lastHealthAt:new Date().toISOString(),lastLatencyMs:result.latencyMs,status:'connected'});
+    addSyncLog('ok','Conexión comprobada',`${result.latencyMs} ms`);
+    return result;
+  }
+  async function runDataSync(){
+    if(syncBusy)return;
+    syncBusy=true;
+    setSyncMeta({status:'syncing'});
+    if(currentView==='datos')render();
+    try{
+      autoBackupBeforeSync();
+      const payload=await window.LoteriaSync.fetchResults();
+      const summary=importRemoteResults(payload);
+      const now=new Date().toISOString();
+      setSyncMeta({status:'connected',lastSyncAt:now,lastResult:summary});
+      const message=summary.added?`${summary.added} resultado(s) nuevo(s)`:'Sin resultados nuevos';
+      addSyncLog('ok',message,`${summary.duplicates} duplicados · ${summary.invalid} inválidos`);
+      toast(message);
+    }catch(error){
+      setSyncMeta({status:'error',lastError:String(error?.message||error)});
+      addSyncLog('error','Error de sincronización',String(error?.message||error));
+      toast(`Error: ${String(error?.message||error)}`);
+    }finally{
+      syncBusy=false;
+      if(currentView==='datos')render();
+    }
+  }
+  function renderDataCenter(){
+    const cfg=syncConfig(),meta=syncMeta(),log=getSyncLog(),status=syncBusy?'busy':meta.status==='connected'?'ok':meta.status==='error'?'error':'';
+    const statusText=syncBusy?'Sincronizando…':meta.status==='connected'?'Conectado':meta.status==='error'?'Error de conexión':'Sin comprobar';
+    return `<div class="grid">
+      <article class="card w12"><div class="data-status"><span class="data-light ${status}"></span><div><b>${statusText}</b><div class="sub">${cfg.workerUrl?esc(cfg.workerUrl):'Worker sin configurar'}</div></div></div></article>
+      <article class="card w7"><h3>Configuración del servidor</h3><div class="field" style="margin-top:12px"><label>URL del Cloudflare Worker</label><input id="workerUrlInput" type="url" placeholder="https://nombre.workers.dev" value="${esc(cfg.workerUrl)}"></div>
+        <div class="form-grid" style="margin-top:12px"><div class="field"><label>Intervalo automático</label><select id="syncIntervalInput"><option value="15" ${cfg.syncIntervalMinutes===15?'selected':''}>15 minutos</option><option value="30" ${cfg.syncIntervalMinutes===30?'selected':''}>30 minutos</option><option value="60" ${cfg.syncIntervalMinutes===60?'selected':''}>60 minutos</option><option value="120" ${cfg.syncIntervalMinutes===120?'selected':''}>2 horas</option></select></div>
+        <div class="field"><label>Actualización automática</label><select id="autoSyncInput"><option value="false" ${!cfg.autoSync?'selected':''}>Desactivada</option><option value="true" ${cfg.autoSync?'selected':''}>Activada</option></select></div></div>
+        <label style="display:flex;gap:9px;align-items:center;margin-top:13px"><input id="autoBackupInput" type="checkbox" ${cfg.autoBackup?'checked':''}> Crear respaldo local antes de sincronizar</label>
+        <div class="sync-actions"><button class="btn primary" id="saveSyncConfig">Guardar configuración</button><button class="btn" id="testWorkerBtn">Probar conexión</button><button class="btn" id="syncNowBtn" ${syncBusy?'disabled':''}>↻ Actualizar ahora</button></div>
+      </article>
+      <article class="card w5"><h3>Estado de sincronización</h3><div class="kpi-row" style="grid-template-columns:1fr 1fr"><div class="kpi"><span class="sub">Última actualización</span><strong style="font-size:1rem">${formatSyncTime(meta.lastSyncAt)}</strong></div><div class="kpi"><span class="sub">Latencia</span><strong>${meta.lastLatencyMs??'—'}${meta.lastLatencyMs!=null?' ms':''}</strong></div><div class="kpi"><span class="sub">Añadidos</span><strong>${meta.lastResult?.added??0}</strong></div><div class="kpi"><span class="sub">Duplicados</span><strong>${meta.lastResult?.duplicates??0}</strong></div></div>
+        <div class="notice ${meta.status==='error'?'warn':''}">${meta.lastError?esc(meta.lastError):'El Centro de Datos conservará la entrada manual y evitará duplicados.'}</div>
+      </article>
+      <article class="card w12"><h3>Fuente de datos</h3><div class="source-card"><b>Worker V4.1</b><div class="sub">La aplicación espera un JSON normalizado en <code>/api/results</code>. Hasta configurar una fuente verificada, el Worker devolverá una lista vacía sin inventar resultados.</div><code>{"results":[{"game":"pega3_dia","date":"2026-08-02","numbers":[1,2,3],"bonus":5}]}</code></div></article>
+      <article class="card w12"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h3>Registro de actividad</h3><div class="sub">Últimos 100 eventos del Centro de Datos.</div></div><button class="btn small" id="clearSyncLog">Limpiar registro</button></div>
+        <div class="sync-log" style="margin-top:12px">${log.length?log.map(x=>`<div class="sync-entry ${x.status==='error'?'error':x.status==='ok'?'ok':'info'}"><span>${formatSyncTime(x.time)}</span><b>${esc(x.message)}</b><span class="sub">${esc(x.detail||'')}</span></div>`).join(''):'<div class="empty">Todavía no hay eventos.</div>'}</div>
+      </article>
+    </div>`;
+  }
+
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
   function applyTheme(theme){
     document.body.classList.toggle('light',theme==='light');
@@ -491,7 +629,7 @@ const THEME_KEY='loteria-pr-theme';
     powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
   };
   const GAME_KEYS=Object.keys(GAMES);
-  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
+  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['datos','☁','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
   let state=load();
   let currentView='resumen';
   let currentGame='pega3_dia';
@@ -503,7 +641,7 @@ const THEME_KEY='loteria-pr-theme';
   function today(){return new Date().toISOString().slice(0,10)}
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add('hidden'),2800)}
   function allDraws(){return GAME_KEYS.reduce((n,k)=>n+state.draws[k].length,0)}
-  function viewInfo(){return {resumen:['Dashboard Pro','Resumen visual, recomendación del día y estado de todos los juegos.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],tendencias:['Centro de tendencias','Compara impulso, frecuencia y atraso entre distintas ventanas.'],patrones:['Detector de patrones','Analiza secuencias, tríos, balance, saltos y anomalías.'],correlaciones:['Red de correlaciones','Descubre números que aparecen juntos con mayor frecuencia.'],top100:['Top 100 combinaciones','Genera y clasifica hasta cien combinaciones con filtros avanzados.'],comparar:['Comparador de juegos','Contrasta actividad, estabilidad y tendencias entre los juegos cargados.'],rendimiento:['Panel de rendimiento','Compara estrategias, distribución de aciertos y consistencia histórica.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador Pro','Crea combinaciones explicadas con puntuación interna de afinidad estadística.'],favoritos:['Favoritos inteligentes','Añade notas, clasifica estrategias y revisa coincidencias con sorteos posteriores.'],diagnostico:['Diagnóstico','Comprueba almacenamiento, datos, funciones y compatibilidad del navegador.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
+  function viewInfo(){return {resumen:['Dashboard Pro','Resumen visual, recomendación del día y estado de todos los juegos.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],tendencias:['Centro de tendencias','Compara impulso, frecuencia y atraso entre distintas ventanas.'],patrones:['Detector de patrones','Analiza secuencias, tríos, balance, saltos y anomalías.'],correlaciones:['Red de correlaciones','Descubre números que aparecen juntos con mayor frecuencia.'],top100:['Top 100 combinaciones','Genera y clasifica hasta cien combinaciones con filtros avanzados.'],comparar:['Comparador de juegos','Contrasta actividad, estabilidad y tendencias entre los juegos cargados.'],rendimiento:['Panel de rendimiento','Compara estrategias, distribución de aciertos y consistencia histórica.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador Pro','Crea combinaciones explicadas con puntuación interna de afinidad estadística.'],favoritos:['Favoritos inteligentes','Añade notas, clasifica estrategias y revisa coincidencias con sorteos posteriores.'],datos:['Centro de Datos','Configura el Worker, comprueba la conexión y sincroniza resultados nuevos.'],diagnostico:['Diagnóstico','Comprueba almacenamiento, datos, funciones y compatibilidad del navegador.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
   function renderHeader(){const [t,p]=viewInfo();document.getElementById('heroTitle').textContent=t;document.getElementById('heroText').textContent=p;document.getElementById('drawCount').textContent=allDraws();document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===currentView));document.querySelectorAll('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===currentGame))}
   function initNav(){const html=NAV.map(([id,ic,lab])=>`<button data-nav="${id}">${ic} &nbsp;${lab}</button>`).join('');document.getElementById('desktopNav').innerHTML=html;document.getElementById('mobileNav').innerHTML=NAV.slice(0,6).map(([id,,lab])=>`<button class="btn small" data-nav="${id}">${lab}</button>`).join('');document.getElementById('mobileDock').innerHTML=NAV.slice(0,5).map(([id,ic,lab])=>`<button data-nav="${id}"><div style="font-size:1.2rem">${ic}</div>${lab}</button>`).join('');document.getElementById('mobileDock').classList.remove('hidden');document.getElementById('gameTabs').innerHTML=GAME_KEYS.map(k=>`<button class="btn small" data-game="${k}">${GAMES[k].short}</button>`).join('')}
   document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n){currentView=n.dataset.nav;render();return}const g=e.target.closest('[data-game]');if(g){currentGame=g.dataset.game;render();return}})
@@ -749,7 +887,7 @@ const THEME_KEY='loteria-pr-theme';
     let best={hits:-1,date:''};future.forEach(d=>{const hits=d.numbers.filter(n=>f.numbers.includes(n)).length;if(hits>best.hits)best={hits,date:d.date}});
     return {label:`Mejor: ${best.hits} acierto${best.hits===1?'':'s'}`,cls:best.hits>0?'status-hit':'status-miss',hits:best.hits,date:best.date};
   }
-  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>V3.5.1 es la compilación estable: añade diagnóstico, auditoría de datos, guardado protegido y accesos rápidos de respaldo antes de la Fase 4. Ninguna puntuación representa probabilidad real de premio.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
+  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>V4.1 incorpora el Centro de Datos: configuración del Worker, prueba de conexión, sincronización validada, duplicados, respaldo previo y registro de actividad. Ninguna puntuación representa probabilidad real de premio.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
 
   function drawBarChart(id,labels,values){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d'),dpr=Math.max(1,devicePixelRatio||1),w=c.clientWidth||900,h=c.clientHeight||240;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const pad={l:42,r:12,t:18,b:38},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,max=Math.max(1,...values),slot=cw/Math.max(1,values.length),bw=Math.max(4,slot*.62);ctx.strokeStyle='#203855';ctx.fillStyle='#91a4ba';ctx.font='12px system-ui';for(let i=0;i<=4;i++){const y=pad.t+ch*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(Math.round(max*(1-i/4)),4,y+4)}values.forEach((v,i)=>{const bh=ch*v/max,x=pad.l+i*slot+(slot-bw)/2,y=pad.t+ch-bh;const g=ctx.createLinearGradient(0,y,0,pad.t+ch);g.addColorStop(0,'#23d6d1');g.addColorStop(1,'#168bad');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,bw,bh,5):ctx.rect(x,y,bw,bh);ctx.fill();ctx.fillStyle='#91a4ba';ctx.textAlign='center';const step=Math.ceil(labels.length/18);if(i%step===0)ctx.fillText(labels[i],x+bw/2,h-12)});ctx.textAlign='left'}
 
@@ -767,6 +905,28 @@ const THEME_KEY='loteria-pr-theme';
 
 
 
+
+
+    if(currentView==='datos'){
+      const saveBtn=document.getElementById('saveSyncConfig');
+      if(saveBtn)saveBtn.onclick=()=>{
+        const workerUrl=document.getElementById('workerUrlInput').value.trim().replace(/\/+$/,'');
+        window.LoteriaConfig.save({
+          ...window.LoteriaConfig.current,
+          workerUrl,
+          syncIntervalMinutes:+document.getElementById('syncIntervalInput').value,
+          autoSync:document.getElementById('autoSyncInput').value==='true',
+          autoBackup:document.getElementById('autoBackupInput').checked
+        });
+        addSyncLog('info','Configuración guardada',workerUrl||'Worker vacío');
+        toast('Configuración guardada');
+        render();
+      };
+      const testBtn=document.getElementById('testWorkerBtn');
+      if(testBtn)testBtn.onclick=async()=>{testBtn.disabled=true;testBtn.textContent='Probando…';try{await testWorkerConnection();toast('Worker conectado')}catch(e){setSyncMeta({status:'error',lastError:String(e?.message||e)});addSyncLog('error','Falló la conexión',String(e?.message||e));toast(String(e?.message||e))}finally{render()}};
+      const syncBtn=document.getElementById('syncNowBtn');if(syncBtn)syncBtn.onclick=runDataSync;
+      const clearBtn=document.getElementById('clearSyncLog');if(clearBtn)clearBtn.onclick=()=>{localStorage.removeItem(SYNC_LOG_KEY);render()};
+    }
 
     if(currentView==='diagnostico'){
       const rd=document.getElementById('runDiag');if(rd)rd.onclick=()=>render();
@@ -808,7 +968,7 @@ const THEME_KEY='loteria-pr-theme';
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
@@ -820,6 +980,12 @@ const THEME_KEY='loteria-pr-theme';
   document.getElementById('resetBtn').onclick=()=>{if(confirm('Esto borrará todos los resultados y favoritos guardados en este navegador. ¿Continuar?')){state=base();save();render();toast('Datos reiniciados')}};
   window.addEventListener('resize',()=>{if(currentView==='resumen'||currentView==='estadisticas')render()});
   initNav();render();
+  setTimeout(async()=>{
+    const cfg=syncConfig(),meta=syncMeta();
+    if(!cfg.autoSync||!cfg.workerUrl)return;
+    const elapsed=Date.now()-new Date(meta.lastSyncAt||0).getTime();
+    if(elapsed>=cfg.syncIntervalMinutes*60000)await runDataSync();
+  },1200);
 })();
 
 </script>
