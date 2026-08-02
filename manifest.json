@@ -1,0 +1,10 @@
+{
+  "name": "Lotería PR Analytics",
+  "short_name": "Lotería PR",
+  "description": "Suite modular de análisis estadístico para juegos de Lotería PR.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#06101f",
+  "theme_color": "#06101f",
+  "lang": "es-PR"
+}
