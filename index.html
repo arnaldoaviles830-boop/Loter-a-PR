@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#06101f" />
-  <title>Lotería PR · Motor analítico V3.4</title>
+  <title>Lotería PR · Premium Analytics V3.5</title>
   <style>
     :root{--bg:#06101f;--panel:#0d1b2d;--panel2:#10243c;--line:#203855;--text:#f4f7fb;--muted:#91a4ba;--cyan:#23d6d1;--orange:#ffb020;--red:#ff5c63;--green:#35d07f;--purple:#a987ff;--shadow:0 18px 60px rgba(0,0,0,.28);--r:18px}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0,#102a49 0,transparent 34%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
@@ -116,14 +116,38 @@
     @media(max-width:850px){.insight-grid,.top-controls{grid-template-columns:repeat(2,1fr)}.combo-rank{grid-template-columns:40px 1fr}.combo-rank>div:nth-child(3),.combo-rank>div:nth-child(4){grid-column:2}}
     @media(max-width:520px){.insight-grid,.top-controls{grid-template-columns:1fr}.network{min-height:360px}.pattern-row{grid-template-columns:1fr 70px 70px}}
 
+
+    :root{--glass:rgba(8,21,34,.72);--glass-strong:rgba(7,18,31,.90);--shadow-soft:0 14px 40px rgba(0,0,0,.22);--shadow-glow:0 0 0 1px rgba(35,214,209,.08),0 18px 50px rgba(0,0,0,.28);--ease:cubic-bezier(.2,.8,.2,1)}
+    body{background:radial-gradient(circle at 10% 0%,rgba(35,214,209,.08),transparent 28%),radial-gradient(circle at 90% 0%,rgba(137,92,246,.10),transparent 30%),linear-gradient(180deg,#06111c,#08131f 42%,#07111a);min-height:100vh;transition:background .35s var(--ease),color .35s var(--ease)}
+    body.light{--bg:#eef5fb;--panel:#fff;--panel2:#f7fbff;--line:#d8e5ef;--text:#102132;--muted:#60758a;--cyan:#0aa7a1;--purple:#7456df;--glass:rgba(255,255,255,.78);--glass-strong:rgba(255,255,255,.94);background:radial-gradient(circle at 10% 0%,rgba(10,167,161,.12),transparent 28%),radial-gradient(circle at 90% 0%,rgba(116,86,223,.12),transparent 30%),linear-gradient(180deg,#edf5fb,#f7fbff)}
+    .sidebar,.topbar,.card,.hero,.mobile-dock{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+    .sidebar{background:var(--glass-strong)!important;box-shadow:var(--shadow-soft)}
+    .topbar{position:sticky;top:0;z-index:20;background:var(--glass);border-bottom:1px solid var(--line);padding-top:10px;padding-bottom:10px}
+    .card,.hero{box-shadow:var(--shadow-soft);transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease)}
+    .card:hover{transform:translateY(-2px);box-shadow:var(--shadow-glow);border-color:rgba(35,214,209,.28)}
+    .hero{position:relative;overflow:hidden}.hero:after{content:"";position:absolute;inset:auto -15% -45% auto;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(35,214,209,.16),transparent 68%);pointer-events:none}
+    .btn{transition:transform .16s var(--ease),box-shadow .16s var(--ease),background .16s var(--ease),border-color .16s var(--ease)}.btn:active{transform:scale(.97)}.btn:hover{box-shadow:0 8px 24px rgba(0,0,0,.18);border-color:rgba(35,214,209,.4)}.btn.primary{box-shadow:0 10px 26px rgba(35,214,209,.18)}
+    .nav-item{transition:transform .18s var(--ease),background .18s var(--ease),color .18s var(--ease)}.nav-item:hover{transform:translateX(3px)}.nav-item.active{box-shadow:inset 3px 0 0 var(--cyan),0 8px 22px rgba(0,0,0,.14)}
+    .ball,.tiny-ball{box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 18px rgba(0,0,0,.18);transition:transform .18s var(--ease)}.ball:hover,.tiny-ball:hover{transform:translateY(-2px) scale(1.04)}
+    .metric-card,.game-mini,.compare-card,.analysis-card,.leader-row,.combo-rank,.insight{transition:transform .2s var(--ease),border-color .2s var(--ease),background .2s var(--ease)}
+    .metric-card:hover,.game-mini:hover,.compare-card:hover,.analysis-card:hover,.leader-row:hover,.combo-rank:hover,.insight:hover{transform:translateY(-2px);border-color:rgba(35,214,209,.3)}
+    .slide-up{animation:slideUp .38s var(--ease) both}@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    .page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#06111c;transition:opacity .45s ease,visibility .45s ease}.page-loader.hide{opacity:0;visibility:hidden}
+    .loader-orbit{width:74px;height:74px;border-radius:50%;border:3px solid rgba(35,214,209,.18);border-top-color:var(--cyan);animation:spin .9s linear infinite;display:grid;place-items:center}.loader-orbit:after{content:"PR";font-weight:950;color:var(--cyan)}@keyframes spin{to{transform:rotate(360deg)}}
+    .section-kicker{text-transform:uppercase;letter-spacing:.12em;font-size:.72rem;color:var(--cyan);font-weight:900}
+    .premium-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,rgba(35,214,209,.14),rgba(137,92,246,.14));border:1px solid rgba(35,214,209,.25);font-size:.78rem;font-weight:850}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:#42e69b;box-shadow:0 0 0 6px rgba(66,230,155,.08)}
+    @media(max-width:760px){.app{padding-bottom:88px}.card:hover,.metric-card:hover,.game-mini:hover,.compare-card:hover,.analysis-card:hover,.leader-row:hover,.combo-rank:hover,.insight:hover{transform:none}.hero h2{font-size:1.55rem}.main{padding-inline:12px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
   </style>
 </head>
-<body>
+<body><div class="page-loader" id="pageLoader"><div class="loader-orbit"></div></div>
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Motor analítico avanzado · V3.4</small></div></div>
+    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Experiencia premium · V3.5</small></div></div>
     <div class="top-actions">
-      <button class="btn" id="exportBtn">⬇ <span>Respaldo</span></button><button class="btn" id="excelBtn">▦ <span>Excel</span></button><button class="btn" id="pdfBtn">▣ <span>PDF</span></button>
+      <button class="btn" id="exportBtn">⬇ <span>Respaldo</span></button><button class="btn" id="excelBtn">▦ <span>Excel</span></button><button class="btn" id="pdfBtn">▣ <span>PDF</span></button><button class="btn" id="themeBtn">◐ <span>Tema</span></button>
       <label class="btn">⬆ <span>Importar</span><input id="importFile" type="file" accept="application/json" hidden></label>
       <button class="btn danger" id="resetBtn">↺ <span>Reiniciar</span></button>
     </div>
@@ -150,6 +174,30 @@
 <div class="toast hidden" id="toast"></div>
 
 <script>
+
+  const THEME_KEY='loteria-pr-theme';
+  function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+  function applyTheme(theme){
+    document.body.classList.toggle('light',theme==='light');
+    localStorage.setItem(THEME_KEY,theme);
+    const btn=document.getElementById('themeBtn');
+    if(btn)btn.innerHTML=theme==='light'?'☾ <span>Oscuro</span>':'◐ <span>Claro</span>';
+  }
+  function initTheme(){
+    const saved=localStorage.getItem(THEME_KEY);
+    const preferred=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
+    applyTheme(saved||preferred);
+  }
+  function animateCurrentView(){
+    [...document.querySelectorAll('.main .card,.main .hero,.main .metric-card')].forEach((el,i)=>{
+      el.classList.remove('slide-up');
+      el.style.animationDelay=`${Math.min(i*35,280)}ms`;
+      void el.offsetWidth;
+      el.classList.add('slide-up');
+    });
+  }
+  function premiumRenderHook(){requestAnimationFrame(animateCurrentView)}
+
 (() => {
   'use strict';
   const STORAGE='loteria-pr-v1';
@@ -390,7 +438,7 @@
   function renderSummary(){
     const metrics=allGameMetrics(),m=metrics.find(x=>x.game===currentGame),rec=dailyRecommendation(),rows=drawsWindow(),sums=sumBuckets(rows),cfg=GAMES[currentGame];
     const trendData=rows.slice(-14).map(d=>d.numbers.reduce((a,b)=>a+b,0));
-    return `<section class="hero hero-pro"><div><span class="pill">FASE 3.2</span><h2>Dashboard inteligente</h2><p>Lectura rápida del historial, señales recientes y combinación destacada del juego seleccionado.</p></div><div class="top-actions"><span class="signal-chip">● ${rows.length} sorteos analizados</span><span class="signal-chip">Juego: ${cfg.label}</span></div></section>
+    return `<section class="hero hero-pro"><div><span class="premium-badge"><span class="status-dot"></span> V3.5 PREMIUM</span><div class="section-kicker">Centro de mando</div><h2>Dashboard inteligente</h2><p>Lectura rápida del historial, señales recientes y combinación destacada del juego seleccionado.</p></div><div class="top-actions"><span class="signal-chip">● ${rows.length} sorteos analizados</span><span class="signal-chip">Juego: ${cfg.label}</span></div></section>
       <div class="dashboard-grid" style="margin-top:14px">
         <div class="metric-card"><span class="sub">Sorteos cargados</span><strong>${rows.length}</strong><span class="signal-chip">${rows.length>=30?'Base sólida':rows.length>=10?'Base media':'Base pequeña'}</span></div>
         <div class="metric-card"><span class="sub">Estabilidad de frecuencia</span><strong>${m?.stability||0}%</strong><span class="signal-chip">${(m?.stability||0)>=70?'Uniforme':'Variable'}</span></div>
@@ -421,7 +469,7 @@
     let best={hits:-1,date:''};future.forEach(d=>{const hits=d.numbers.filter(n=>f.numbers.includes(n)).length;if(hits>best.hits)best={hits,date:d.date}});
     return {label:`Mejor: ${best.hits} acierto${best.hits===1?'':'s'}`,cls:best.hits>0?'status-hit':'status-miss',hits:best.hits,date:best.date};
   }
-  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>Patrones detecta secuencias y anomalías; Correlaciones muestra afinidades históricas; Top 100 clasifica combinaciones con filtros. Ninguna puntuación representa probabilidad real de premio.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
+  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>V3.5 añade tema claro/oscuro, animaciones suaves, navegación refinada, carga visual y mejor experiencia móvil. Ninguna puntuación representa probabilidad real de premio.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
 
   function drawBarChart(id,labels,values){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d'),dpr=Math.max(1,devicePixelRatio||1),w=c.clientWidth||900,h=c.clientHeight||240;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const pad={l:42,r:12,t:18,b:38},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,max=Math.max(1,...values),slot=cw/Math.max(1,values.length),bw=Math.max(4,slot*.62);ctx.strokeStyle='#203855';ctx.fillStyle='#91a4ba';ctx.font='12px system-ui';for(let i=0;i<=4;i++){const y=pad.t+ch*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(Math.round(max*(1-i/4)),4,y+4)}values.forEach((v,i)=>{const bh=ch*v/max,x=pad.l+i*slot+(slot-bw)/2,y=pad.t+ch-bh;const g=ctx.createLinearGradient(0,y,0,pad.t+ch);g.addColorStop(0,'#23d6d1');g.addColorStop(1,'#168bad');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,bw,bh,5):ctx.rect(x,y,bw,bh);ctx.fill();ctx.fillStyle='#91a4ba';ctx.textAlign='center';const step=Math.ceil(labels.length/18);if(i%step===0)ctx.fillText(labels[i],x+bw/2,h-12)});ctx.textAlign='left'}
 
@@ -477,6 +525,7 @@
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
   document.getElementById('exportBtn').onclick=()=>download(`loteria-pr-backup-${today()}.json`,JSON.stringify(state,null,2));
   document.getElementById('pdfBtn').onclick=()=>window.print();
+  document.getElementById('themeBtn').onclick=()=>applyTheme(document.body.classList.contains('light')?'dark':'light');
   document.getElementById('excelBtn').onclick=()=>{const rows=[['Juego','Fecha','Números','Adicional']];GAME_KEYS.forEach(k=>state.draws[k].forEach(d=>rows.push([GAMES[k].label,d.date,d.numbers.join('-'),d.bonus??''])));const table='<table>'+rows.map((r,i)=>'<tr>'+r.map(v=>`<${i?'td':'th'}>${esc(v)}</${i?'td':'th'}>`).join('')+'</tr>').join('')+'</table>';download(`loteria-pr-${today()}.xls`,`<html><head><meta charset="utf-8"></head><body>${table}</body></html>`,'application/vnd.ms-excel')};
   document.getElementById('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!data.draws)throw 0;state=Object.assign(base(),data);save();render();toast('Copia importada correctamente')}catch{toast('El archivo no es una copia válida')}e.target.value=''};
   document.getElementById('resetBtn').onclick=()=>{if(confirm('Esto borrará todos los resultados y favoritos guardados en este navegador. ¿Continuar?')){state=base();save();render();toast('Datos reiniciados')}};
