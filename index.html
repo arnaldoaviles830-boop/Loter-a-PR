@@ -165,7 +165,48 @@
     .sync-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
     @media(max-width:700px){.sync-entry{grid-template-columns:1fr}.sync-entry span{display:block}}
 
-</style>>
+
+    body.light .hero,
+    body.light .card,
+    body.light .metric-card,
+    body.light .game-mini,
+    body.light .compare-card,
+    body.light .analysis-card,
+    body.light .leader-row,
+    body.light .combo-rank,
+    body.light .insight,
+    body.light .health-card,
+    body.light .data-status,
+    body.light .source-card,
+    body.light .sync-entry,
+    body.light .kpi,
+    body.light .factor,
+    body.light .field input,
+    body.light .field select,
+    body.light .field textarea,
+    body.light table,
+    body.light .notice,
+    body.light .empty,
+    body.light .debug-box,
+    body.light .side-note{
+      background:#ffffff!important;
+      color:#102132!important;
+      border-color:#d8e5ef!important;
+    }
+    body.light .sidebar,
+    body.light .mobile-dock,
+    body.light .topbar{background:rgba(255,255,255,.94)!important}
+    body.light .nav button,
+    body.light .mobile-dock button{color:#60758a}
+    body.light .nav button.active,
+    body.light .mobile-dock button.active{color:#0a8f8a;background:#e8f6f5}
+    body.light .sub,
+    body.light .side-note,
+    body.light small{color:#60758a!important}
+    body.light .btn{background:#ffffff;color:#102132;border-color:#d8e5ef}
+    body.light .btn.primary{background:linear-gradient(135deg,#0aa7a1,#7456df);color:white}
+
+</style>
 <body>
 <div class="app">
   <header class="top">
@@ -603,8 +644,7 @@ const THEME_KEY='loteria-pr-theme';
   }
   function initTheme(){
     const saved=localStorage.getItem(THEME_KEY);
-    const preferred=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
-    applyTheme(saved||preferred);
+    applyTheme(saved==='light'?'light':'dark');
   }
   function animateCurrentView(){
     [...document.querySelectorAll('.main .card,.main .hero,.main .metric-card')].forEach((el,i)=>{
