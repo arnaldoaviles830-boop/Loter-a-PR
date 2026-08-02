@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#06101f" />
-  <title>Lotería PR · Premium Analytics V3.5</title>
+  <title>Lotería PR · Stable Build V3.5.1</title>
   <style>
     :root{--bg:#06101f;--panel:#0d1b2d;--panel2:#10243c;--line:#203855;--text:#f4f7fb;--muted:#91a4ba;--cyan:#23d6d1;--orange:#ffb020;--red:#ff5c63;--green:#35d07f;--purple:#a987ff;--shadow:0 18px 60px rgba(0,0,0,.28);--r:18px}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0,#102a49 0,transparent 34%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
@@ -140,12 +140,21 @@
     @media(max-width:760px){.app{padding-bottom:88px}.card:hover,.metric-card:hover,.game-mini:hover,.compare-card:hover,.analysis-card:hover,.leader-row:hover,.combo-rank:hover,.insight:hover{transform:none}.hero h2{font-size:1.55rem}.main{padding-inline:12px}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 
+
+    .health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .health-card{padding:15px;border-radius:14px;border:1px solid var(--line);background:#091827}
+    .health-ok{color:#42e69b}.health-warn{color:#ffcf70}.health-bad{color:#ff6f91}
+    .health-icon{font-size:1.55rem;display:block;margin-bottom:7px}
+    .debug-box{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#06111c;border:1px solid var(--line);border-radius:12px;padding:12px;max-height:280px;overflow:auto;font-size:.78rem}
+    .backup-banner{padding:12px 14px;border-radius:13px;background:linear-gradient(135deg,rgba(66,230,155,.10),rgba(35,214,209,.08));border:1px solid rgba(66,230,155,.22);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    @media(max-width:760px){.health-grid{grid-template-columns:1fr}}
+
   </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Experiencia premium · V3.5</small></div></div>
+    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Versión estable · V3.5.1</small></div></div>
     <div class="top-actions">
       <button class="btn" id="exportBtn">⬇ <span>Respaldo</span></button><button class="btn" id="excelBtn">▦ <span>Excel</span></button><button class="btn" id="pdfBtn">▣ <span>PDF</span></button><button class="btn" id="themeBtn">◐ <span>Tema</span></button>
       <label class="btn">⬆ <span>Importar</span><input id="importFile" type="file" accept="application/json" hidden></label>
@@ -176,6 +185,68 @@
 <script>
 
   const THEME_KEY='loteria-pr-theme';
+
+  const BUILD_VERSION='3.5.1';
+  const ERROR_KEY='loteria-pr-last-error';
+  function safeSave(){
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+      localStorage.removeItem(ERROR_KEY);
+      return true;
+    }catch(err){
+      localStorage.setItem(ERROR_KEY,String(err&&err.message||err));
+      toast('No se pudo guardar. Exporta un respaldo.');
+      return false;
+    }
+  }
+  function storageUsage(){
+    let bytes=0;
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i),v=localStorage.getItem(k)||'';
+      bytes+=(k.length+v.length)*2;
+    }
+    return bytes;
+  }
+  function stateAudit(){
+    const issues=[];
+    if(!state||typeof state!=='object')issues.push('Estado principal inválido');
+    if(!state.draws||typeof state.draws!=='object')issues.push('Colección de sorteos ausente');
+    GAME_KEYS.forEach(k=>{
+      if(!Array.isArray(state.draws?.[k]))issues.push(`Historial inválido: ${k}`);
+      (state.draws?.[k]||[]).forEach((d,i)=>{
+        if(!d.date||!Array.isArray(d.numbers))issues.push(`${k} fila ${i+1}: formato incompleto`);
+      });
+    });
+    if(!Array.isArray(state.favorites))issues.push('Favoritos inválidos');
+    return issues;
+  }
+  function runDiagnostics(){
+    const tests=[];
+    const push=(name,ok,detail)=>tests.push({name,ok,detail});
+    push('JavaScript',true,'Motor activo');
+    let ls=false;try{const k='__lot_test__';localStorage.setItem(k,'1');ls=localStorage.getItem(k)==='1';localStorage.removeItem(k)}catch(e){}
+    push('Almacenamiento local',ls,ls?'Disponible':'Bloqueado por el navegador');
+    const audit=stateAudit();
+    push('Integridad de datos',audit.length===0,audit.length?audit.join(' · '):'Sin problemas detectados');
+    push('Generador',typeof proGenerate==='function','Motor Pro disponible');
+    push('Simulador',typeof runBacktest==='function','Pruebas retrospectivas disponibles');
+    push('Importación CSV',typeof parseCSV==='function','Lector CSV disponible');
+    push('Exportación',typeof download==='function','Descargas disponibles');
+    push('Tema',typeof applyTheme==='function','Tema claro/oscuro disponible');
+    return tests;
+  }
+  function renderDiagnostic(){
+    const tests=runDiagnostics(),ok=tests.filter(x=>x.ok).length,total=tests.length,usage=storageUsage();
+    const lastError=localStorage.getItem(ERROR_KEY)||'Ninguno';
+    return `<div class="grid">
+      <article class="card w12"><div class="backup-banner"><div><b>Compilación estable V${BUILD_VERSION}</b><div class="sub">Verificación local antes de comenzar la Fase 4.</div></div><button class="btn primary" id="runDiag">Ejecutar diagnóstico</button></div></article>
+      <article class="card w12"><h3>Estado general</h3><div class="insight-grid"><div class="insight"><span class="sub">Pruebas correctas</span><strong>${ok}/${total}</strong></div><div class="insight"><span class="sub">Uso local</span><strong>${(usage/1024).toFixed(1)} KB</strong></div><div class="insight"><span class="sub">Sorteos</span><strong>${GAME_KEYS.reduce((a,k)=>a+(state.draws[k]?.length||0),0)}</strong></div><div class="insight"><span class="sub">Favoritos</span><strong>${state.favorites?.length||0}</strong></div></div></article>
+      <article class="card w12"><h3>Comprobaciones</h3><div class="health-grid">${tests.map(t=>`<div class="health-card"><span class="health-icon ${t.ok?'health-ok':'health-bad'}">${t.ok?'✓':'!'}</span><b>${t.name}</b><div class="sub">${esc(t.detail)}</div></div>`).join('')}</div></article>
+      <article class="card w6"><h3>Herramientas de seguridad</h3><div style="display:grid;gap:10px"><button class="btn" id="diagBackup">Descargar respaldo ahora</button><button class="btn" id="diagCsv">Exportar historial CSV</button><button class="btn" id="diagReload">Recargar aplicación</button></div></article>
+      <article class="card w6"><h3>Último error de guardado</h3><div class="debug-box">${esc(lastError)}</div><div class="notice">No borres los datos del navegador sin descargar primero un respaldo JSON.</div></article>
+    </div>`;
+  }
+
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
   function applyTheme(theme){
     document.body.classList.toggle('light',theme==='light');
@@ -211,7 +282,7 @@
     powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
   };
   const GAME_KEYS=Object.keys(GAMES);
-  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['ayuda','?','Ayuda']];
+  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
   let state=load();
   let currentView='resumen';
   let currentGame='pega3_dia';
@@ -223,7 +294,7 @@
   function today(){return new Date().toISOString().slice(0,10)}
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add('hidden'),2800)}
   function allDraws(){return GAME_KEYS.reduce((n,k)=>n+state.draws[k].length,0)}
-  function viewInfo(){return {resumen:['Dashboard Pro','Resumen visual, recomendación del día y estado de todos los juegos.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],tendencias:['Centro de tendencias','Compara impulso, frecuencia y atraso entre distintas ventanas.'],patrones:['Detector de patrones','Analiza secuencias, tríos, balance, saltos y anomalías.'],correlaciones:['Red de correlaciones','Descubre números que aparecen juntos con mayor frecuencia.'],top100:['Top 100 combinaciones','Genera y clasifica hasta cien combinaciones con filtros avanzados.'],comparar:['Comparador de juegos','Contrasta actividad, estabilidad y tendencias entre los juegos cargados.'],rendimiento:['Panel de rendimiento','Compara estrategias, distribución de aciertos y consistencia histórica.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador Pro','Crea combinaciones explicadas con puntuación interna de afinidad estadística.'],favoritos:['Favoritos inteligentes','Añade notas, clasifica estrategias y revisa coincidencias con sorteos posteriores.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
+  function viewInfo(){return {resumen:['Dashboard Pro','Resumen visual, recomendación del día y estado de todos los juegos.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],tendencias:['Centro de tendencias','Compara impulso, frecuencia y atraso entre distintas ventanas.'],patrones:['Detector de patrones','Analiza secuencias, tríos, balance, saltos y anomalías.'],correlaciones:['Red de correlaciones','Descubre números que aparecen juntos con mayor frecuencia.'],top100:['Top 100 combinaciones','Genera y clasifica hasta cien combinaciones con filtros avanzados.'],comparar:['Comparador de juegos','Contrasta actividad, estabilidad y tendencias entre los juegos cargados.'],rendimiento:['Panel de rendimiento','Compara estrategias, distribución de aciertos y consistencia histórica.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador Pro','Crea combinaciones explicadas con puntuación interna de afinidad estadística.'],favoritos:['Favoritos inteligentes','Añade notas, clasifica estrategias y revisa coincidencias con sorteos posteriores.'],diagnostico:['Diagnóstico','Comprueba almacenamiento, datos, funciones y compatibilidad del navegador.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
   function renderHeader(){const [t,p]=viewInfo();document.getElementById('heroTitle').textContent=t;document.getElementById('heroText').textContent=p;document.getElementById('drawCount').textContent=allDraws();document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===currentView));document.querySelectorAll('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===currentGame))}
   function initNav(){const html=NAV.map(([id,ic,lab])=>`<button data-nav="${id}">${ic} &nbsp;${lab}</button>`).join('');document.getElementById('desktopNav').innerHTML=html;document.getElementById('mobileNav').innerHTML=NAV.slice(0,6).map(([id,,lab])=>`<button class="btn small" data-nav="${id}">${lab}</button>`).join('');document.getElementById('mobileDock').innerHTML=NAV.slice(0,5).map(([id,ic,lab])=>`<button data-nav="${id}"><div style="font-size:1.2rem">${ic}</div>${lab}</button>`).join('');document.getElementById('mobileDock').classList.remove('hidden');document.getElementById('gameTabs').innerHTML=GAME_KEYS.map(k=>`<button class="btn small" data-game="${k}">${GAMES[k].short}</button>`).join('')}
   document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n){currentView=n.dataset.nav;render();return}const g=e.target.closest('[data-game]');if(g){currentGame=g.dataset.game;render();return}})
@@ -438,8 +509,8 @@
   function renderSummary(){
     const metrics=allGameMetrics(),m=metrics.find(x=>x.game===currentGame),rec=dailyRecommendation(),rows=drawsWindow(),sums=sumBuckets(rows),cfg=GAMES[currentGame];
     const trendData=rows.slice(-14).map(d=>d.numbers.reduce((a,b)=>a+b,0));
-    return `<section class="hero hero-pro"><div><span class="premium-badge"><span class="status-dot"></span> V3.5 PREMIUM</span><div class="section-kicker">Centro de mando</div><h2>Dashboard inteligente</h2><p>Lectura rápida del historial, señales recientes y combinación destacada del juego seleccionado.</p></div><div class="top-actions"><span class="signal-chip">● ${rows.length} sorteos analizados</span><span class="signal-chip">Juego: ${cfg.label}</span></div></section>
-      <div class="dashboard-grid" style="margin-top:14px">
+    return `<section class="hero hero-pro"><div><span class="premium-badge"><span class="status-dot"></span> V3.5.1 ESTABLE</span><div class="section-kicker">Centro de mando</div><h2>Dashboard inteligente</h2><p>Lectura rápida del historial, señales recientes y combinación destacada del juego seleccionado.</p></div><div class="top-actions"><span class="signal-chip">● ${rows.length} sorteos analizados</span><span class="signal-chip">Juego: ${cfg.label}</span></div></section>
+      ${rows.length>=25?`<div class="backup-banner" style="margin-top:14px"><div><b>Respaldo recomendado</b><div class="sub">Tienes ${rows.length} sorteos en ${cfg.label}. Guarda una copia antes de grandes cambios.</div></div><button class="btn small" id="quickBackup">Descargar respaldo</button></div>`:''}<div class="dashboard-grid" style="margin-top:14px">
         <div class="metric-card"><span class="sub">Sorteos cargados</span><strong>${rows.length}</strong><span class="signal-chip">${rows.length>=30?'Base sólida':rows.length>=10?'Base media':'Base pequeña'}</span></div>
         <div class="metric-card"><span class="sub">Estabilidad de frecuencia</span><strong>${m?.stability||0}%</strong><span class="signal-chip">${(m?.stability||0)>=70?'Uniforme':'Variable'}</span></div>
         <div class="metric-card"><span class="sub">Suma promedio</span><strong>${sums.avg.toFixed(1)}</strong><span class="signal-chip">Rango ${sums.min}-${sums.max}</span></div>
@@ -469,7 +540,7 @@
     let best={hits:-1,date:''};future.forEach(d=>{const hits=d.numbers.filter(n=>f.numbers.includes(n)).length;if(hits>best.hits)best={hits,date:d.date}});
     return {label:`Mejor: ${best.hits} acierto${best.hits===1?'':'s'}`,cls:best.hits>0?'status-hit':'status-miss',hits:best.hits,date:best.date};
   }
-  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>V3.5 añade tema claro/oscuro, animaciones suaves, navegación refinada, carga visual y mejor experiencia móvil. Ninguna puntuación representa probabilidad real de premio.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
+  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>V3.5.1 es la compilación estable: añade diagnóstico, auditoría de datos, guardado protegido y accesos rápidos de respaldo antes de la Fase 4. Ninguna puntuación representa probabilidad real de premio.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
 
   function drawBarChart(id,labels,values){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d'),dpr=Math.max(1,devicePixelRatio||1),w=c.clientWidth||900,h=c.clientHeight||240;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const pad={l:42,r:12,t:18,b:38},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,max=Math.max(1,...values),slot=cw/Math.max(1,values.length),bw=Math.max(4,slot*.62);ctx.strokeStyle='#203855';ctx.fillStyle='#91a4ba';ctx.font='12px system-ui';for(let i=0;i<=4;i++){const y=pad.t+ch*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(Math.round(max*(1-i/4)),4,y+4)}values.forEach((v,i)=>{const bh=ch*v/max,x=pad.l+i*slot+(slot-bw)/2,y=pad.t+ch-bh;const g=ctx.createLinearGradient(0,y,0,pad.t+ch);g.addColorStop(0,'#23d6d1');g.addColorStop(1,'#168bad');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,bw,bh,5):ctx.rect(x,y,bw,bh);ctx.fill();ctx.fillStyle='#91a4ba';ctx.textAlign='center';const step=Math.ceil(labels.length/18);if(i%step===0)ctx.fillText(labels[i],x+bw/2,h-12)});ctx.textAlign='left'}
 
@@ -487,6 +558,14 @@
 
 
 
+
+    if(currentView==='diagnostico'){
+      const rd=document.getElementById('runDiag');if(rd)rd.onclick=()=>render();
+      const db=document.getElementById('diagBackup');if(db)db.onclick=()=>download(`loteria-pr-v${BUILD_VERSION}-backup-${today()}.json`,JSON.stringify(state,null,2));
+      const dc=document.getElementById('diagCsv');if(dc)dc.onclick=()=>{const rows=[['Juego','Fecha','Numeros','Adicional']];GAME_KEYS.forEach(k=>(state.draws[k]||[]).forEach(d=>rows.push([GAMES[k].label,d.date,d.numbers.join('-'),d.bonus??''])));download(`loteria-pr-historial-${today()}.csv`,rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv')};
+      const dr=document.getElementById('diagReload');if(dr)dr.onclick=()=>location.reload();
+    }
+
     if(currentView==='top100'){
       document.getElementById('buildTop').onclick=()=>{const rows=topCandidates(document.getElementById('topMode').value,+document.getElementById('topCount').value,+document.getElementById('topScore').value,document.getElementById('topOdd').value);document.getElementById('topOutput').innerHTML=rows.length?top100Html(rows):'<div class="empty">No se encontraron combinaciones con esos filtros.</div>';bindFavoriteButtons()}
     }
@@ -497,6 +576,7 @@
     }
 
     if(currentView==='resumen'){
+      const qb=document.getElementById('quickBackup');if(qb)qb.onclick=()=>download(`loteria-pr-v${BUILD_VERSION}-backup-${today()}.json`,JSON.stringify(state,null,2));
       const vals=drawsWindow().slice(-14).map(d=>d.numbers.reduce((a,b)=>a+b,0));requestAnimationFrame(()=>drawSpark('summarySpark',vals));bindFavoriteButtons();
     }
     if(currentView==='favoritos'){
@@ -519,7 +599,7 @@
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
