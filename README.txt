@@ -1,2 +1,9 @@
-Sube index.html a la raíz de GitHub. Guarda worker.js para Cloudflare Workers en V4.1.
-Este index.html contiene estilos y módulos internos en un solo archivo.
+Lotería PR V4.3 PWA
+
+Sube estos cuatro archivos a la raíz de GitHub:
+- index.html
+- manifest.webmanifest
+- sw.js
+- icon.svg
+
+En iPhone usa Safari: Compartir → Añadir a pantalla de inicio.

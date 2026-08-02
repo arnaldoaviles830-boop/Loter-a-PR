@@ -1,0 +1,21 @@
+{
+  "name": "Lotería PR Analytics",
+  "short_name": "Lotería PR",
+  "description": "Análisis estadístico, historial, predicción y centro de datos para Lotería PR.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#06101f",
+  "theme_color": "#06101f",
+  "lang": "es-PR",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

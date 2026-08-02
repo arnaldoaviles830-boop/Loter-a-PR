@@ -207,11 +207,23 @@
     @media(max-width:840px){.model-grid{grid-template-columns:repeat(2,1fr)}.strategy-compare{grid-template-columns:1fr 1fr}.prediction-card{grid-template-columns:54px 1fr}.prediction-card>div:last-child{grid-column:2}}
     @media(max-width:520px){.model-grid,.strategy-compare{grid-template-columns:1fr}}
 
+
+    .install-hero{padding:20px;border-radius:18px;background:linear-gradient(135deg,rgba(35,214,209,.15),rgba(137,92,246,.16));border:1px solid rgba(35,214,209,.28)}
+    .install-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .install-step{padding:15px;border-radius:14px;border:1px solid var(--line);background:#0b1b2d}
+    .install-step strong{display:block;font-size:1.05rem;margin:7px 0}
+    .install-icon{font-size:1.8rem}
+    .offline-card{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;border:1px solid var(--line);background:#0b1b2d}
+    .offline-dot{width:13px;height:13px;border-radius:50%;background:#ffcf70}
+    .offline-dot.ok{background:#42e69b}.offline-dot.bad{background:#ff6f91}
+    .install-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    @media(max-width:760px){.install-grid{grid-template-columns:1fr}}
+
 </style>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Motor Predictivo · V4.2</small></div></div>
+    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>PWA Instalable · V4.3</small></div></div>
     <div class="top-actions">
       <button class="btn" id="exportBtn">⬇ <span>Respaldo</span></button><button class="btn" id="excelBtn">▦ <span>Excel</span></button><button class="btn" id="pdfBtn">▣ <span>PDF</span></button><button class="btn" id="themeBtn">◐ <span>Tema</span></button>
       <label class="btn">⬆ <span>Importar</span><input id="importFile" type="file" accept="application/json" hidden></label>
@@ -232,7 +244,7 @@
         <div><span class="sub">Sorteos registrados</span><div class="metric cyan" id="drawCount">0</div></div>
       </section>
       <section id="view"></section>
-      <footer class="footer">Lotería PR V4.2 · Motor predictivo estadístico con modelos combinados.</footer>
+      <footer class="footer">Lotería PR V4.3 · Instalable y disponible sin conexión.</footer>
     </main>
   </div>
 </div>
@@ -794,6 +806,57 @@ const THEME_KEY='loteria-pr-theme';
     </div>`;
   }
 
+
+  let deferredInstallPrompt=null;
+  let swRegistration=null;
+
+  function isStandaloneMode(){
+    return window.matchMedia?.('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
+  }
+
+  function pwaStatus(){
+    return {
+      standalone:isStandaloneMode(),
+      online:navigator.onLine,
+      swSupported:'serviceWorker' in navigator,
+      swControlled:Boolean(navigator.serviceWorker?.controller),
+      platform:/iphone|ipad|ipod/i.test(navigator.userAgent)?'ios':'other'
+    };
+  }
+
+  async function registerServiceWorker(){
+    if(!('serviceWorker' in navigator))return null;
+    try{
+      swRegistration=await navigator.serviceWorker.register('./sw.js',{scope:'./'});
+      return swRegistration;
+    }catch(error){
+      console.error('Service Worker error',error);
+      return null;
+    }
+  }
+
+  function renderInstall(){
+    const s=pwaStatus(),ios=s.platform==='ios';
+    return `<div class="grid">
+      <article class="card w12"><div class="install-hero"><span class="pill">V4.3 PWA</span><h3 style="margin-top:10px">Instala Lotería PR como aplicación</h3><div class="sub">Abre en pantalla completa y conserva la interfaz y tus datos guardados aunque pierdas la conexión.</div><div class="install-actions"><button class="btn primary" id="installAppBtn" ${s.standalone?'disabled':''}>${s.standalone?'Ya instalada':'Instalar aplicación'}</button><button class="btn" id="refreshPwaBtn">Actualizar estado</button></div></div></article>
+      <article class="card w5"><h3>Estado PWA</h3>
+        <div class="offline-card"><span class="offline-dot ${s.online?'ok':'bad'}"></span><div><b>${s.online?'Con conexión':'Sin conexión'}</b><div class="sub">Estado actual de Internet</div></div></div>
+        <div class="offline-card" style="margin-top:10px"><span class="offline-dot ${s.swControlled?'ok':''}"></span><div><b>${s.swControlled?'Modo sin conexión activo':'Preparando modo sin conexión'}</b><div class="sub">${s.swSupported?'Service Worker compatible':'Navegador no compatible'}</div></div></div>
+        <div class="offline-card" style="margin-top:10px"><span class="offline-dot ${s.standalone?'ok':''}"></span><div><b>${s.standalone?'Ejecutándose como app':'Ejecutándose en navegador'}</b><div class="sub">Modo de apertura</div></div></div>
+      </article>
+      <article class="card w7"><h3>${ios?'Cómo instalar en iPhone':'Cómo instalar'}</h3>
+        <div class="install-grid">
+          <div class="install-step"><span class="install-icon">1️⃣</span><strong>${ios?'Toca Compartir':'Pulsa Instalar'}</strong><div class="sub">${ios?'En Safari, toca el cuadrado con flecha hacia arriba.':'Usa el botón Instalar aplicación.'}</div></div>
+          <div class="install-step"><span class="install-icon">2️⃣</span><strong>${ios?'Añadir a inicio':'Confirma'}</strong><div class="sub">${ios?'Busca “Añadir a pantalla de inicio”.':'Confirma cuando el navegador lo solicite.'}</div></div>
+          <div class="install-step"><span class="install-icon">3️⃣</span><strong>Abre el icono</strong><div class="sub">La aplicación abrirá en pantalla completa.</div></div>
+        </div>
+        ${ios?'<div class="notice">En iPhone debes usar Compartir → Añadir a pantalla de inicio.</div>':''}
+      </article>
+      <article class="card w12"><h3>Disponible sin conexión</h3><div class="sub">La interfaz y los datos guardados localmente seguirán disponibles. La sincronización y los resultados nuevos requieren Internet.</div></article>
+    </div>`;
+  }
+
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
   function applyTheme(theme){
     document.body.classList.remove('light');
@@ -825,7 +888,7 @@ const THEME_KEY='loteria-pr-theme';
     powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
   };
   const GAME_KEYS=Object.keys(GAMES);
-  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['prediccion','◉','Predicción V4.2'],['datos','☁','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
+  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['prediccion','◉','Predicción V4.2'],['instalar','⬇','Instalar App'],['datos','☁','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
   let state=load();
   let currentView='resumen';
   let currentGame='pega3_dia';
@@ -837,7 +900,7 @@ const THEME_KEY='loteria-pr-theme';
   function today(){return new Date().toISOString().slice(0,10)}
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add('hidden'),2800)}
   function allDraws(){return GAME_KEYS.reduce((n,k)=>n+state.draws[k].length,0)}
-  function viewInfo(){return {resumen:['Dashboard Pro','Resumen visual, recomendación del día y estado de todos los juegos.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],tendencias:['Centro de tendencias','Compara impulso, frecuencia y atraso entre distintas ventanas.'],patrones:['Detector de patrones','Analiza secuencias, tríos, balance, saltos y anomalías.'],correlaciones:['Red de correlaciones','Descubre números que aparecen juntos con mayor frecuencia.'],top100:['Top 100 combinaciones','Genera y clasifica hasta cien combinaciones con filtros avanzados.'],comparar:['Comparador de juegos','Contrasta actividad, estabilidad y tendencias entre los juegos cargados.'],rendimiento:['Panel de rendimiento','Compara estrategias, distribución de aciertos y consistencia histórica.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador Pro','Crea combinaciones explicadas con puntuación interna de afinidad estadística.'],favoritos:['Favoritos inteligentes','Añade notas, clasifica estrategias y revisa coincidencias con sorteos posteriores.'],prediccion:['Predicción V4.2','Combina varios modelos estadísticos, filtra jugadas débiles y explica cada recomendación.'],datos:['Centro de Datos','Configura el Worker, comprueba la conexión y sincroniza resultados nuevos.'],diagnostico:['Diagnóstico','Comprueba almacenamiento, datos, funciones y compatibilidad del navegador.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
+  function viewInfo(){return {resumen:['Dashboard Pro','Resumen visual, recomendación del día y estado de todos los juegos.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],tendencias:['Centro de tendencias','Compara impulso, frecuencia y atraso entre distintas ventanas.'],patrones:['Detector de patrones','Analiza secuencias, tríos, balance, saltos y anomalías.'],correlaciones:['Red de correlaciones','Descubre números que aparecen juntos con mayor frecuencia.'],top100:['Top 100 combinaciones','Genera y clasifica hasta cien combinaciones con filtros avanzados.'],comparar:['Comparador de juegos','Contrasta actividad, estabilidad y tendencias entre los juegos cargados.'],rendimiento:['Panel de rendimiento','Compara estrategias, distribución de aciertos y consistencia histórica.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador Pro','Crea combinaciones explicadas con puntuación interna de afinidad estadística.'],favoritos:['Favoritos inteligentes','Añade notas, clasifica estrategias y revisa coincidencias con sorteos posteriores.'],prediccion:['Predicción V4.2','Combina varios modelos estadísticos, filtra jugadas débiles y explica cada recomendación.'],instalar:['Instalar App','Instala Lotería PR en tu pantalla de inicio y consulta datos guardados sin conexión.'],datos:['Centro de Datos','Configura el Worker, comprueba la conexión y sincroniza resultados nuevos.'],diagnostico:['Diagnóstico','Comprueba almacenamiento, datos, funciones y compatibilidad del navegador.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
   function renderHeader(){const [t,p]=viewInfo();document.getElementById('heroTitle').textContent=t;document.getElementById('heroText').textContent=p;document.getElementById('drawCount').textContent=allDraws();document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===currentView));document.querySelectorAll('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===currentGame))}
   function initNav(){const html=NAV.map(([id,ic,lab])=>`<button data-nav="${id}">${ic} &nbsp;${lab}</button>`).join('');document.getElementById('desktopNav').innerHTML=html;document.getElementById('mobileNav').innerHTML=NAV.slice(0,6).map(([id,,lab])=>`<button class="btn small" data-nav="${id}">${lab}</button>`).join('');document.getElementById('mobileDock').innerHTML=NAV.slice(0,5).map(([id,ic,lab])=>`<button data-nav="${id}"><div style="font-size:1.2rem">${ic}</div>${lab}</button>`).join('');document.getElementById('mobileDock').classList.remove('hidden');document.getElementById('gameTabs').innerHTML=GAME_KEYS.map(k=>`<button class="btn small" data-game="${k}">${GAMES[k].short}</button>`).join('')}
   document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n){currentView=n.dataset.nav;render();return}const g=e.target.closest('[data-game]');if(g){currentGame=g.dataset.game;render();return}})
@@ -1083,7 +1146,7 @@ const THEME_KEY='loteria-pr-theme';
     let best={hits:-1,date:''};future.forEach(d=>{const hits=d.numbers.filter(n=>f.numbers.includes(n)).length;if(hits>best.hits)best={hits,date:d.date}});
     return {label:`Mejor: ${best.hits} acierto${best.hits===1?'':'s'}`,cls:best.hits>0?'status-hit':'status-miss',hits:best.hits,date:best.date};
   }
-  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>V4.2 añade un motor predictivo estadístico con varios modelos, filtros de combinaciones débiles, comparación de estrategias y explicaciones. No representa probabilidad real de ganar. Ninguna puntuación representa probabilidad real de premio.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
+  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>V4.3 convierte la herramienta en una PWA instalable, añade pantalla completa y disponibilidad sin conexión para la interfaz y los datos guardados. Ninguna puntuación representa probabilidad real de premio.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
 
   function drawBarChart(id,labels,values){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d'),dpr=Math.max(1,devicePixelRatio||1),w=c.clientWidth||900,h=c.clientHeight||240;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const pad={l:42,r:12,t:18,b:38},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,max=Math.max(1,...values),slot=cw/Math.max(1,values.length),bw=Math.max(4,slot*.62);ctx.strokeStyle='#203855';ctx.fillStyle='#91a4ba';ctx.font='12px system-ui';for(let i=0;i<=4;i++){const y=pad.t+ch*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(Math.round(max*(1-i/4)),4,y+4)}values.forEach((v,i)=>{const bh=ch*v/max,x=pad.l+i*slot+(slot-bw)/2,y=pad.t+ch-bh;const g=ctx.createLinearGradient(0,y,0,pad.t+ch);g.addColorStop(0,'#23d6d1');g.addColorStop(1,'#168bad');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,bw,bh,5):ctx.rect(x,y,bw,bh);ctx.fill();ctx.fillStyle='#91a4ba';ctx.textAlign='center';const step=Math.ceil(labels.length/18);if(i%step===0)ctx.fillText(labels[i],x+bw/2,h-12)});ctx.textAlign='left'}
 
@@ -1103,6 +1166,25 @@ const THEME_KEY='loteria-pr-theme';
 
 
 
+
+
+    if(currentView==='instalar'){
+      const installBtn=document.getElementById('installAppBtn');
+      if(installBtn)installBtn.onclick=async()=>{
+        if(isStandaloneMode()){toast('La aplicación ya está instalada');return}
+        if(deferredInstallPrompt){
+          deferredInstallPrompt.prompt();
+          await deferredInstallPrompt.userChoice;
+          deferredInstallPrompt=null;
+          render();
+          return;
+        }
+        if(/iphone|ipad|ipod/i.test(navigator.userAgent))toast('En Safari usa Compartir → Añadir a pantalla de inicio');
+        else toast('Usa el menú del navegador para instalar la aplicación');
+      };
+      const refreshBtn=document.getElementById('refreshPwaBtn');
+      if(refreshBtn)refreshBtn.onclick=()=>render();
+    }
 
     if(currentView==='prediccion'){
       const run=document.getElementById('runPrediction');
@@ -1175,17 +1257,30 @@ const THEME_KEY='loteria-pr-theme';
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,prediccion:renderPrediction,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,prediccion:renderPrediction,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
   document.getElementById('exportBtn').onclick=()=>download(`loteria-pr-backup-${today()}.json`,JSON.stringify(state,null,2));
   document.getElementById('pdfBtn').onclick=()=>window.print();
   document.getElementById('themeBtn').onclick=()=>applyTheme(document.body.classList.contains('light')?'dark':'light');
-  document.getElementById('excelBtn').onclick=()=>{const rows=[['Juego','Fecha','Números','Adicional']];GAME_KEYS.forEach(k=>state.draws[k].forEach(d=>rows.push([GAMES[k].label,d.date,d.numbers.join('-'),d.bonus??''])));const table='<table>'+rows.map((r,i)=>'<tr>'+r.map(v=>`<${i?'td':'th'}>${esc(v)}</${i?'td':'th'}>`).join('')+'</tr>').join('')+'</table>';download(`loteria-pr-${today()}.xls`,`<html><head><meta charset="utf-8"></head><body>${table}</body></html>`,'application/vnd.ms-excel')};
+  document.getElementById('excelBtn').onclick=()=>{const rows=[['Juego','Fecha','Números','Adicional']];GAME_KEYS.forEach(k=>state.draws[k].forEach(d=>rows.push([GAMES[k].label,d.date,d.numbers.join('-'),d.bonus??''])));const table='<table>'+rows.map((r,i)=>'<tr>'+r.map(v=>`<${i?'td':'th'}>${esc(v)}</${i?'td':'th'}>`).join('')+'</tr>').join('')+'</table>';download(`loteria-pr-${today()}.xls`,`<html><head><meta charset="utf-8">  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Lotería PR">
+  <link rel="apple-touch-icon" href="./icon.svg">
+</head><body>${table}</body></html>`,'application/vnd.ms-excel')};
   document.getElementById('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!data.draws)throw 0;state=Object.assign(base(),data);save();render();toast('Copia importada correctamente')}catch{toast('El archivo no es una copia válida')}e.target.value=''};
   document.getElementById('resetBtn').onclick=()=>{if(confirm('Esto borrará todos los resultados y favoritos guardados en este navegador. ¿Continuar?')){state=base();save();render();toast('Datos reiniciados')}};
   window.addEventListener('resize',()=>{if(currentView==='resumen'||currentView==='estadisticas')render()});
+  window.addEventListener('beforeinstallprompt',event=>{
+    event.preventDefault();
+    deferredInstallPrompt=event;
+  });
+  window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;toast('Aplicación instalada')});
+  window.addEventListener('online',()=>{if(currentView==='instalar')render()});
+  window.addEventListener('offline',()=>{if(currentView==='instalar')render()});
+  registerServiceWorker();
   initNav();render();
   setTimeout(async()=>{
     const cfg=syncConfig(),meta=syncMeta();
