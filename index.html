@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#06101f" />
-  <title>Lotería PR · Laboratorio estadístico V2</title>
+  <title>Lotería PR · Motor de análisis V3.1</title>
   <style>
     :root{--bg:#06101f;--panel:#0d1b2d;--panel2:#10243c;--line:#203855;--text:#f4f7fb;--muted:#91a4ba;--cyan:#23d6d1;--orange:#ffb020;--red:#ff5c63;--green:#35d07f;--purple:#a987ff;--shadow:0 18px 60px rgba(0,0,0,.28);--r:18px}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0,#102a49 0,transparent 34%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
@@ -43,12 +43,25 @@
       .sub,.notice{color:#333!important}.table-wrap{overflow:visible}.main{width:100%}
     }
 
+
+    .confidence-ring{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--cyan) calc(var(--score)*1%),#132940 0);position:relative;flex:0 0 auto}
+    .confidence-ring:after{content:"";position:absolute;inset:7px;background:#081522;border-radius:50%}
+    .confidence-ring b{position:relative;z-index:1;font-size:1rem}
+    .analysis-card{display:flex;gap:14px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:14px;background:#071521}
+    .analysis-card .explain{font-size:.88rem;color:var(--muted);line-height:1.45;margin-top:5px}
+    .factor-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+    .factor{background:#0c1d2d;border:1px solid var(--line);padding:8px;border-radius:10px;text-align:center}
+    .factor b{display:block;color:var(--cyan)}
+    .trend-table td,.trend-table th{text-align:center}
+    .trend-up{color:#42e69b;font-weight:900}.trend-down{color:#ff7d95;font-weight:900}.trend-flat{color:#ffcf70;font-weight:900}
+    @media(max-width:760px){.factor-grid{grid-template-columns:repeat(2,1fr)}.analysis-card{align-items:flex-start}}
+
   </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Laboratorio estadístico local · V2</small></div></div>
+    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Motor de análisis local · V3.1</small></div></div>
     <div class="top-actions">
       <button class="btn" id="exportBtn">⬇ <span>Respaldo</span></button><button class="btn" id="excelBtn">▦ <span>Excel</span></button><button class="btn" id="pdfBtn">▣ <span>PDF</span></button>
       <label class="btn">⬆ <span>Importar</span><input id="importFile" type="file" accept="application/json" hidden></label>
@@ -90,7 +103,7 @@
     powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
   };
   const GAME_KEYS=Object.keys(GAMES);
-  const NAV=[['resumen','⌂','Resumen'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador'],['favoritos','★','Favoritos'],['ayuda','?','Ayuda']];
+  const NAV=[['resumen','⌂','Resumen'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos'],['ayuda','?','Ayuda']];
   let state=load();
   let currentView='resumen';
   let currentGame='pega3_dia';
@@ -102,7 +115,7 @@
   function today(){return new Date().toISOString().slice(0,10)}
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add('hidden'),2800)}
   function allDraws(){return GAME_KEYS.reduce((n,k)=>n+state.draws[k].length,0)}
-  function viewInfo(){return {resumen:['Resumen','Vista general de tus sorteos y tendencias.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador inteligente','Crea combinaciones con distintos criterios estadísticos.'],favoritos:['Favoritos','Tus combinaciones guardadas en este dispositivo.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
+  function viewInfo(){return {resumen:['Resumen','Vista general de tus sorteos y tendencias.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],tendencias:['Centro de tendencias','Compara impulso, frecuencia y atraso entre distintas ventanas.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador Pro','Crea combinaciones explicadas con puntuación interna de afinidad estadística.'],favoritos:['Favoritos','Tus combinaciones guardadas en este dispositivo.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
   function renderHeader(){const [t,p]=viewInfo();document.getElementById('heroTitle').textContent=t;document.getElementById('heroText').textContent=p;document.getElementById('drawCount').textContent=allDraws();document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===currentView));document.querySelectorAll('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===currentGame))}
   function initNav(){const html=NAV.map(([id,ic,lab])=>`<button data-nav="${id}">${ic} &nbsp;${lab}</button>`).join('');document.getElementById('desktopNav').innerHTML=html;document.getElementById('mobileNav').innerHTML=NAV.slice(0,6).map(([id,,lab])=>`<button class="btn small" data-nav="${id}">${lab}</button>`).join('');document.getElementById('mobileDock').innerHTML=NAV.slice(0,5).map(([id,ic,lab])=>`<button data-nav="${id}"><div style="font-size:1.2rem">${ic}</div>${lab}</button>`).join('');document.getElementById('mobileDock').classList.remove('hidden');document.getElementById('gameTabs').innerHTML=GAME_KEYS.map(k=>`<button class="btn small" data-game="${k}">${GAMES[k].short}</button>`).join('')}
   document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n){currentView=n.dataset.nav;render();return}const g=e.target.closest('[data-game]');if(g){currentGame=g.dataset.game;render();return}})
@@ -217,14 +230,93 @@
     return `<div class="grid"><article class="card w6"><h3>Importar archivo CSV</h3><div class="sub">Columnas admitidas: fecha, numeros, adicional.</div><div class="field" style="margin-top:14px"><label>Archivo para ${GAMES[currentGame].label}</label><input id="csvFile" type="file" accept=".csv,text/csv"></div><div class="toolbar"><button class="btn" id="sampleCsv">Descargar plantilla</button><button class="btn primary" id="importCsvBtn">Validar e importar</button></div><div class="notice">Ejemplo: <span class="mono">2026-08-02,"3-8-12-27-39",2</span></div></article><article class="card w6"><h3>Vista previa</h3><div id="csvPreview"><div class="empty">Selecciona un archivo para validar sus filas.</div></div></article><article class="card w12"><h3>Reglas de importación</h3><div class="split"><div class="notice">Se rechazan filas con cantidad incorrecta, valores fuera de rango o números principales repetidos.</div><div class="notice">Se evitan duplicados cuando coinciden juego, fecha, números y adicional.</div></div></article></div>`;
   }
 
+
+  function normalizeMap(obj){
+    const vals=Object.values(obj);const min=Math.min(...vals),max=Math.max(...vals);
+    const out={};for(const [k,v] of Object.entries(obj))out[k]=max===min?.5:(v-min)/(max-min);return out;
+  }
+  function numberModel(game=currentGame){
+    const cfg=GAMES[game],all=drawsWindow(0,game),recent7=drawsWindow(7,game),recent15=drawsWindow(15,game),recent30=drawsWindow(30,game);
+    const fAll=normalizeMap(freqFromRows(all,game)),f7=normalizeMap(freqFromRows(recent7,game)),f15=normalizeMap(freqFromRows(recent15,game)),f30=normalizeMap(freqFromRows(recent30,game));
+    const gaps=normalizeMap(gapStats(all,game)),model=[];
+    for(let n=cfg.min;n<=cfg.max;n++){
+      const long=fAll[n]??0,recent=(f7[n]??0)*.5+(f15[n]??0)*.3+(f30[n]??0)*.2,gap=gaps[n]??0;
+      const momentum=Math.max(0,Math.min(1,.5+(f7[n]??0)-(f30[n]??0)));
+      const score=100*(long*.25+recent*.35+gap*.20+momentum*.20);
+      model.push({n,long,recent,gap,momentum,score});
+    }
+    return model.sort((a,b)=>b.score-a.score||a.n-b.n);
+  }
+  function comboFactors(nums,game=currentGame){
+    const cfg=GAMES[game],model=numberModel(game),map=Object.fromEntries(model.map(x=>[x.n,x]));
+    const picked=nums.map(n=>map[n]||{score:50,long:.5,recent:.5,gap:.5,momentum:.5});
+    const avg=k=>picked.reduce((a,x)=>a+x[k],0)/picked.length;
+    let balance=1;
+    if(cfg.type==='balls'){
+      const evens=nums.filter(n=>n%2===0).length,target=cfg.count/2;balance=Math.max(0,1-Math.abs(evens-target)/Math.max(1,target));
+      const sorted=[...nums].sort((a,b)=>a-b),span=sorted.at(-1)-sorted[0],ideal=(cfg.max-cfg.min)*.62;balance=(balance+Math.max(0,1-Math.abs(span-ideal)/Math.max(1,ideal)))/2;
+    }
+    const raw=avg('score')*.72+balance*28;
+    return {score:Math.round(Math.max(1,Math.min(99,raw))),frequency:Math.round(avg('long')*100),trend:Math.round(avg('recent')*100),delay:Math.round(avg('gap')*100),balance:Math.round(balance*100)};
+  }
+  function explainCombo(c){
+    const f=c.factors||comboFactors(c.numbers,c.game),parts=[];
+    if(f.trend>=65)parts.push('fuerte impulso reciente'); else if(f.trend<=35)parts.push('tendencia reciente moderada');
+    if(f.delay>=65)parts.push('incluye números atrasados');
+    if(f.frequency>=65)parts.push('buena presencia histórica');
+    if(f.balance>=70)parts.push('distribución equilibrada');
+    return parts.length?parts.join(', '):'mezcla diversificada sin un factor dominante';
+  }
+  function proGenerate(mode,count=5){
+    const cfg=GAMES[currentGame],model=numberModel(),rows=[];
+    const presets={
+      conservative:{frequency:.35,trend:.30,delay:.10,momentum:.15,random:.10},
+      balanced:{frequency:.25,trend:.25,delay:.20,momentum:.20,random:.10},
+      aggressive:{frequency:.10,trend:.40,delay:.10,momentum:.30,random:.10},
+      hot:{frequency:.25,trend:.45,delay:.05,momentum:.20,random:.05},
+      cold:{frequency:.05,trend:.10,delay:.60,momentum:.10,random:.15},
+      mixed:{frequency:.22,trend:.23,delay:.25,momentum:.20,random:.10}
+    },w=presets[mode]||presets.balanced;
+    for(let k=0;k<count;k++){
+      const pool=model.map(x=>({n:x.n,w:1+w.frequency*x.long*6+w.trend*x.recent*7+w.delay*x.gap*6+w.momentum*x.momentum*5+Math.random()*w.random*6}));
+      const nums=[];while(nums.length<cfg.count&&pool.length){let total=pool.reduce((a,x)=>a+x.w,0),r=Math.random()*total,idx=0;for(;idx<pool.length;idx++){r-=pool[idx].w;if(r<=0)break}idx=Math.min(idx,pool.length-1);const chosen=pool[idx].n;nums.push(chosen);if(cfg.type==='balls')pool.splice(idx,1)}
+      if(cfg.type==='balls')nums.sort((a,b)=>a-b);
+      const c={id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),game:currentGame,numbers:nums,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toISOString()};
+      c.factors=comboFactors(nums,currentGame);c.explanation=explainCombo(c);rows.push(c);
+    }
+    return rows.sort((a,b)=>b.factors.score-a.factors.score);
+  }
+  function trendRows(){
+    const cfg=GAMES[currentGame],wins=[7,15,30,60,180],freqs=wins.map(w=>freqFromRows(drawsWindow(w),currentGame));
+    const rows=[];for(let n=cfg.min;n<=cfg.max;n++){
+      const vals=freqs.map(f=>f[n]||0),short=vals[0],long=Math.max(1,vals[2]||vals[4]||1),signal=short/Math.max(1,Math.min(7,drawsWindow(7).length))-long/Math.max(1,Math.min(30,drawsWindow(30).length));
+      rows.push({n,vals,signal});
+    }return rows.sort((a,b)=>Math.abs(b.signal)-Math.abs(a.signal)||a.n-b.n);
+  }
+  function renderTrends(){
+    const rows=trendRows(),topUp=[...rows].sort((a,b)=>b.signal-a.signal).slice(0,8),topDown=[...rows].sort((a,b)=>a.signal-b.signal).slice(0,8);
+    return `<div class="grid">
+      <article class="card w12"><h3>Comparador de ventanas</h3><div class="sub">Frecuencia observada en los últimos 7, 15, 30, 60 y 180 sorteos disponibles.</div><div class="table-wrap"><table class="trend-table"><thead><tr><th>Número</th><th>7</th><th>15</th><th>30</th><th>60</th><th>180</th><th>Señal</th></tr></thead><tbody>${rows.slice(0,40).map(x=>`<tr><td><b>${x.n}</b></td>${x.vals.map(v=>`<td>${v}</td>`).join('')}<td class="${x.signal>.08?'trend-up':x.signal<-.08?'trend-down':'trend-flat'}">${x.signal>.08?'↑ Impulso':x.signal<-.08?'↓ Enfriamiento':'→ Neutral'}</td></tr>`).join('')}</tbody></table></div></article>
+      <article class="card w6"><h3>Mayor impulso reciente</h3>${bars(topUp.map(x=>({n:x.n,c:Math.max(0,Math.round((x.signal+1)*50))})),100)}</article>
+      <article class="card w6"><h3>Mayor enfriamiento</h3>${bars(topDown.map(x=>({n:x.n,c:Math.max(0,Math.round((1-x.signal)*50))})),100)}</article>
+      <article class="card w12"><div class="notice warn"><b>Importante:</b> una señal describe cambios dentro del historial cargado. No aumenta la probabilidad matemática real de un número en el próximo sorteo.</div></article>
+    </div>`;
+  }
+  function renderGenerator(){
+    return `<div class="grid"><article class="card w5"><h3>Generador Pro 3.1</h3><form id="generatorForm" style="margin-top:14px"><div class="field"><label>Perfil de análisis</label><select id="modeInput"><option value="conservative">Conservador</option><option value="balanced" selected>Balanceado</option><option value="aggressive">Agresivo</option><option value="hot">Tendencia caliente</option><option value="cold">Atrasados/fríos</option><option value="mixed">Mixto diversificado</option></select></div><div class="field" style="margin-top:12px"><label>Cantidad</label><select id="countInput"><option>3</option><option selected>5</option><option>10</option></select></div><button class="btn primary" style="margin-top:14px">Analizar y generar</button></form><div class="notice warn"><b>La puntuación es interna.</b> No representa la probabilidad real de premio ni una predicción garantizada.</div></article><article class="card w7"><h3>Combinaciones explicadas</h3><div class="sub">Ordenadas por afinidad con el perfil seleccionado.</div><div id="generatorOutput" class="generator-output"><div class="empty">Selecciona un perfil para comenzar.</div></div></article></div>`;
+  }
+  function proComboHtml(c){
+    const f=c.factors||comboFactors(c.numbers,c.game);
+    return `<div class="analysis-card"><div class="confidence-ring" style="--score:${f.score}"><b>${f.score}</b></div><div style="min-width:0;flex:1"><div class="combo-left">${c.numbers.map(n=>`<span class="ball small">${n}</span>`).join('')}${c.bonus!=null?`<span>+</span><span class="ball small red">${c.bonus}</span>`:''}<span class="pill">${esc(c.mode)}</span></div><div class="explain">${esc(c.explanation||explainCombo(c))}</div><div class="factor-grid"><div class="factor"><b>${f.frequency}</b><span class="sub">Frecuencia</span></div><div class="factor"><b>${f.trend}</b><span class="sub">Tendencia</span></div><div class="factor"><b>${f.delay}</b><span class="sub">Atraso</span></div><div class="factor"><b>${f.balance}</b><span class="sub">Balance</span></div></div></div><button class="btn small" data-favorite='${encodeURIComponent(JSON.stringify(c))}'>★</button></div>`;
+  }
+
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
   function weightedPick(items,count,repeat){const work=items.map(x=>({n:x.n,w:x.c+1})),out=[];while(out.length<count&&work.length){let total=work.reduce((a,x)=>a+x.w,0),r=Math.random()*total,idx=0;for(;idx<work.length;idx++){r-=work[idx].w;if(r<=0)break}idx=Math.min(idx,work.length-1);out.push(work[idx].n);if(!repeat)work.splice(idx,1)}return out}
   function generate(mode,count=5){const cfg=GAMES[currentGame],freq=sortedFreq('desc'),rows=[];for(let j=0;j<count;j++){let nums=[];if(mode==='random'){while(nums.length<cfg.count){const n=randomInt(cfg.min,cfg.max);if(cfg.type==='digits'||!nums.includes(n))nums.push(n)}}else if(mode==='hot'){nums=weightedPick(freq,cfg.count,cfg.type==='digits')}else if(mode==='balanced'){const hot=freq.slice(0,Math.max(cfg.count*2,8));const cold=[...freq].reverse().slice(0,Math.max(cfg.count*2,8));const mixed=hot.map((x,i)=>i%2?cold[i]||x:x);nums=weightedPick(mixed,cfg.count,cfg.type==='digits')}else{const mid=[...freq].sort((a,b)=>Math.abs(a.c-(state.draws[currentGame].length?state.draws[currentGame].length*cfg.count/(cfg.max-cfg.min+1):0))-Math.abs(b.c-(state.draws[currentGame].length?state.draws[currentGame].length*cfg.count/(cfg.max-cfg.min+1):0)));nums=weightedPick(mid,cfg.count,cfg.type==='digits')}if(cfg.type==='balls')nums.sort((a,b)=>a-b);rows.push({id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),game:currentGame,numbers:nums,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toISOString()})}return rows}
-  function renderGenerator(){return `<div class="grid"><article class="card w6"><h3>Configurar generación</h3><form id="generatorForm" style="margin-top:14px"><div class="form-grid"><div class="field"><label>Método</label><select id="modeInput"><option value="balanced">Balanceado</option><option value="hot">Ponderado por calientes</option><option value="neutral">Frecuencia media</option><option value="random">Aleatorio puro</option></select></div><div class="field"><label>Cantidad de combinaciones</label><select id="countInput"><option>3</option><option selected>5</option><option>10</option></select></div></div><button class="btn primary" style="margin-top:14px">Generar combinaciones</button></form><div class="notice warn"><b>No es una predicción garantizada.</b> Los métodos solo organizan combinaciones usando datos históricos.</div></article><article class="card w6"><h3>Resultado</h3><div class="sub">Puedes guardar cualquier combinación como favorita.</div><div id="generatorOutput" class="generator-output"><div class="empty">Selecciona un método y genera combinaciones.</div></div></article></div>`}
 
   function comboHtml(c){return `<div class="combo"><div class="combo-left">${c.numbers.map(n=>`<span class="ball small">${n}</span>`).join('')}${c.bonus!=null?`<span>+</span><span class="ball small red">${c.bonus}</span>`:''}<span class="pill">${esc(c.mode||'guardada')}</span></div><button class="btn small" data-favorite='${encodeURIComponent(JSON.stringify(c))}'>★ Guardar</button></div>`}
   function renderFavorites(){const rows=state.favorites.filter(x=>x.game===currentGame);return `<article class="card w12"><h3>Favoritos · ${GAMES[currentGame].label}</h3><div class="sub">${rows.length} combinaciones guardadas</div>${rows.length?`<div class="generator-output">${rows.map(c=>`<div class="combo"><div class="combo-left">${c.numbers.map(n=>`<span class="ball small hot">${n}</span>`).join('')}${c.bonus!=null?`<span>+</span><span class="ball small red">${c.bonus}</span>`:''}<span class="sub">${new Date(c.created).toLocaleDateString('es-PR')}</span></div><button class="btn small danger" data-unfavorite="${esc(c.id)}">Eliminar</button></div>`).join('')}</div>`:`<div class="empty">Todavía no tienes favoritos para este juego.</div>`}</article>`}
-  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>Importa historiales CSV, compara estrategias en el simulador y exporta respaldo, Excel o PDF.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
+  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>Usa Tendencias para comparar ventanas y Generador Pro para crear combinaciones explicadas mediante una puntuación estadística interna.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
 
   function drawBarChart(id,labels,values){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d'),dpr=Math.max(1,devicePixelRatio||1),w=c.clientWidth||900,h=c.clientHeight||240;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const pad={l:42,r:12,t:18,b:38},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,max=Math.max(1,...values),slot=cw/Math.max(1,values.length),bw=Math.max(4,slot*.62);ctx.strokeStyle='#203855';ctx.fillStyle='#91a4ba';ctx.font='12px system-ui';for(let i=0;i<=4;i++){const y=pad.t+ch*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(Math.round(max*(1-i/4)),4,y+4)}values.forEach((v,i)=>{const bh=ch*v/max,x=pad.l+i*slot+(slot-bw)/2,y=pad.t+ch-bh;const g=ctx.createLinearGradient(0,y,0,pad.t+ch);g.addColorStop(0,'#23d6d1');g.addColorStop(1,'#168bad');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,bw,bh,5):ctx.rect(x,y,bw,bh);ctx.fill();ctx.fillStyle='#91a4ba';ctx.textAlign='center';const step=Math.ceil(labels.length/18);if(i%step===0)ctx.fillText(labels[i],x+bw/2,h-12)});ctx.textAlign='left'}
 
@@ -237,7 +329,7 @@
       const csv=document.getElementById('downloadCsv');if(csv)csv.onclick=()=>downloadCSV();
     }
     if(currentView==='generador'){
-      document.getElementById('generatorForm').onsubmit=e=>{e.preventDefault();const rows=generate(document.getElementById('modeInput').value,+document.getElementById('countInput').value);document.getElementById('generatorOutput').innerHTML=rows.map(comboHtml).join('');bindFavoriteButtons()}
+      document.getElementById('generatorForm').onsubmit=e=>{e.preventDefault();const rows=proGenerate(document.getElementById('modeInput').value,+document.getElementById('countInput').value);document.getElementById('generatorOutput').innerHTML=rows.map(proComboHtml).join('');bindFavoriteButtons()}
     }
     if(currentView==='simulador'){
       document.getElementById('simForm').onsubmit=e=>{e.preventDefault();const mode=document.getElementById('simMode').value,train=+document.getElementById('simTrain').value,r=runBacktest(mode,train),cfg=GAMES[currentGame];document.getElementById('simOutput').innerHTML=r.results.length?`<div class="kpi-row"><div class="kpi"><span class="sub">Pruebas</span><strong>${r.results.length}</strong></div><div class="kpi"><span class="sub">Aciertos medios</span><strong>${r.avg.toFixed(2)}</strong></div><div class="kpi"><span class="sub">Mejor resultado</span><strong>${r.best}/${cfg.count}</strong></div><div class="kpi"><span class="sub">Exactos</span><strong>${r.exact}</strong></div></div><div class="notice">Puntuación descriptiva: <span class="score">${Math.min(100,Math.round(r.avg/cfg.count*100))}%</span></div>`:`<div class="empty">Necesitas más de ${train} sorteos para evaluar.</div>`;document.getElementById('simTable').innerHTML=r.results.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Combinación generada</th><th>Resultado real</th><th>Aciertos</th></tr></thead><tbody>${r.results.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.combo.join('-')}</td><td>${x.actual.join('-')}</td><td><b>${x.hits}</b></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Sin evaluaciones.</div>`}
@@ -255,7 +347,7 @@
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
