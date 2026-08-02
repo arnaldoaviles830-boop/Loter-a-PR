@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#06101f" />
-  <title>Lotería PR · Análisis local</title>
+  <title>Lotería PR · Laboratorio estadístico V2</title>
   <style>
     :root{--bg:#06101f;--panel:#0d1b2d;--panel2:#10243c;--line:#203855;--text:#f4f7fb;--muted:#91a4ba;--cyan:#23d6d1;--orange:#ffb020;--red:#ff5c63;--green:#35d07f;--purple:#a987ff;--shadow:0 18px 60px rgba(0,0,0,.28);--r:18px}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0,#102a49 0,transparent 34%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
@@ -22,14 +22,35 @@
     .toast{position:fixed;right:18px;bottom:18px;background:#10283f;color:white;border:1px solid #326181;padding:12px 16px;border-radius:12px;box-shadow:var(--shadow);z-index:50;max-width:340px}
     @media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{display:none}.mobile-nav{display:flex;overflow:auto;gap:8px;margin-bottom:15px;padding-bottom:4px}.mobile-nav button{white-space:nowrap}.card{grid-column:span 6}.card.w8{grid-column:span 12}}
     @media(max-width:680px){.app{padding:10px 10px 95px}.top{align-items:flex-start}.top-actions{justify-content:flex-end}.top-actions .btn span{display:none}.hero{padding:17px;display:block}.grid{gap:12px}.card,.card.w6,.card.w8{grid-column:span 12}.form-grid{grid-template-columns:1fr}.combo{align-items:flex-start;flex-direction:column}.mobile-dock{position:fixed;z-index:30;bottom:0;left:0;right:0;background:rgba(5,15,27,.95);backdrop-filter:blur(16px);border-top:1px solid var(--line);display:grid!important;grid-template-columns:repeat(5,1fr);padding:7px env(safe-area-inset-right) calc(7px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}.mobile-dock button{border:0;background:transparent;color:var(--muted);font-size:.68rem;padding:7px 2px}.mobile-dock button.active{color:var(--cyan)}}
+
+    .kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+    .kpi{padding:14px;border-radius:14px;background:#081522;border:1px solid var(--line)}
+    .kpi strong{display:block;font-size:1.45rem;margin-top:5px}
+    .heat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:8px;margin-top:14px}
+    .heat-cell{padding:10px 4px;border-radius:10px;text-align:center;border:1px solid var(--line);font-weight:850}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .progress{height:10px;background:#122840;border-radius:20px;overflow:hidden;margin-top:7px}
+    .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan))}
+    .score{font-size:2.2rem;font-weight:950;color:var(--cyan)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px}
+    .toolbar .field{min-width:150px;flex:1}
+    @media(max-width:760px){.kpi-row{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}}
+    @media print{
+      body{background:white!important;color:#111!important}
+      .sidebar,.mobile-nav,.mobile-dock,.top-actions,.game-tabs,.btn,.footer{display:none!important}
+      .app{max-width:none;padding:0}.layout{display:block}.hero,.card{box-shadow:none!important;background:white!important;color:#111!important;border-color:#bbb!important}
+      .sub,.notice{color:#333!important}.table-wrap{overflow:visible}.main{width:100%}
+    }
+
   </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Análisis estadístico local · V1</small></div></div>
+    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Laboratorio estadístico local · V2</small></div></div>
     <div class="top-actions">
-      <button class="btn" id="exportBtn">⬇ <span>Exportar</span></button>
+      <button class="btn" id="exportBtn">⬇ <span>Respaldo</span></button><button class="btn" id="excelBtn">▦ <span>Excel</span></button><button class="btn" id="pdfBtn">▣ <span>PDF</span></button>
       <label class="btn">⬆ <span>Importar</span><input id="importFile" type="file" accept="application/json" hidden></label>
       <button class="btn danger" id="resetBtn">↺ <span>Reiniciar</span></button>
     </div>
@@ -69,7 +90,7 @@
     powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
   };
   const GAME_KEYS=Object.keys(GAMES);
-  const NAV=[['resumen','⌂','Resumen'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['generador','✦','Generador'],['favoritos','★','Favoritos'],['ayuda','?','Ayuda']];
+  const NAV=[['resumen','⌂','Resumen'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador'],['favoritos','★','Favoritos'],['ayuda','?','Ayuda']];
   let state=load();
   let currentView='resumen';
   let currentGame='pega3_dia';
@@ -81,7 +102,7 @@
   function today(){return new Date().toISOString().slice(0,10)}
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add('hidden'),2800)}
   function allDraws(){return GAME_KEYS.reduce((n,k)=>n+state.draws[k].length,0)}
-  function viewInfo(){return {resumen:['Resumen','Vista general de tus sorteos y tendencias.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas','Frecuencias, balance y distribución del juego seleccionado.'],generador:['Generador inteligente','Crea combinaciones con distintos criterios estadísticos.'],favoritos:['Favoritos','Tus combinaciones guardadas en este dispositivo.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
+  function viewInfo(){return {resumen:['Resumen','Vista general de tus sorteos y tendencias.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador inteligente','Crea combinaciones con distintos criterios estadísticos.'],favoritos:['Favoritos','Tus combinaciones guardadas en este dispositivo.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
   function renderHeader(){const [t,p]=viewInfo();document.getElementById('heroTitle').textContent=t;document.getElementById('heroText').textContent=p;document.getElementById('drawCount').textContent=allDraws();document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===currentView));document.querySelectorAll('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===currentGame))}
   function initNav(){const html=NAV.map(([id,ic,lab])=>`<button data-nav="${id}">${ic} &nbsp;${lab}</button>`).join('');document.getElementById('desktopNav').innerHTML=html;document.getElementById('mobileNav').innerHTML=NAV.slice(0,6).map(([id,,lab])=>`<button class="btn small" data-nav="${id}">${lab}</button>`).join('');document.getElementById('mobileDock').innerHTML=NAV.slice(0,5).map(([id,ic,lab])=>`<button data-nav="${id}"><div style="font-size:1.2rem">${ic}</div>${lab}</button>`).join('');document.getElementById('mobileDock').classList.remove('hidden');document.getElementById('gameTabs').innerHTML=GAME_KEYS.map(k=>`<button class="btn small" data-game="${k}">${GAMES[k].short}</button>`).join('')}
   document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n){currentView=n.dataset.nav;render();return}const g=e.target.closest('[data-game]');if(g){currentGame=g.dataset.game;render();return}})
@@ -113,6 +134,89 @@
 
   function renderStats(){const sf=sortedFreq('desc'),max=Math.max(1,...sf.map(x=>x.c)),s=stats(),cfg=GAMES[currentGame];return `<div class="grid"><article class="card w8"><h3>Frecuencia completa</h3><div class="sub">Apariciones por número o dígito</div><canvas id="freqChart" width="900" height="300"></canvas></article><article class="card"><h3>Resumen</h3><div class="bar-list"><div class="bar-line"><b>Par</b><div class="bar"><i style="width:${s.even+s.odd?100*s.even/(s.even+s.odd):0}%"></i></div><span>${s.even}</span></div><div class="bar-line"><b>Imp</b><div class="bar"><i style="width:${s.even+s.odd?100*s.odd/(s.even+s.odd):0}%"></i></div><span>${s.odd}</span></div></div><div class="notice">Rango: ${cfg.min}-${cfg.max}<br>Promedio: ${s.avg.toFixed(2)}<br>Sorteos: ${s.draws}</div></article><article class="card w12"><h3>Tabla de frecuencias</h3>${bars(sf,max)}</article></div>`}
 
+
+  function drawsWindow(limit=0,game=currentGame){
+    const rows=[...state.draws[game]].sort((a,b)=>a.date.localeCompare(b.date));
+    return limit>0?rows.slice(-limit):rows;
+  }
+  function freqFromRows(rows,game=currentGame){
+    const cfg=GAMES[game],freq={};for(let i=cfg.min;i<=cfg.max;i++)freq[i]=0;
+    rows.forEach(d=>d.numbers.forEach(n=>{if(freq[n]!=null)freq[n]++}));return freq;
+  }
+  function gapStats(rows,game=currentGame){
+    const cfg=GAMES[game],last={},gaps={};for(let i=cfg.min;i<=cfg.max;i++){last[i]=-1;gaps[i]=rows.length}
+    rows.forEach((d,idx)=>d.numbers.forEach(n=>{last[n]=idx}));
+    for(let i=cfg.min;i<=cfg.max;i++)gaps[i]=last[i]<0?rows.length:rows.length-1-last[i];
+    return gaps;
+  }
+  function pairStats(rows){
+    const pairs={};rows.forEach(d=>{const nums=[...new Set(d.numbers)].sort((a,b)=>a-b);for(let i=0;i<nums.length;i++)for(let j=i+1;j<nums.length;j++){const k=nums[i]+'-'+nums[j];pairs[k]=(pairs[k]||0)+1}});
+    return Object.entries(pairs).map(([pair,c])=>({pair,c})).sort((a,b)=>b.c-a.c||a.pair.localeCompare(b.pair));
+  }
+  function sumBuckets(rows){
+    const vals=rows.map(d=>d.numbers.reduce((a,b)=>a+b,0));if(!vals.length)return {vals:[],min:0,max:0,avg:0};
+    return {vals,min:Math.min(...vals),max:Math.max(...vals),avg:vals.reduce((a,b)=>a+b,0)/vals.length};
+  }
+  function endingStats(rows){
+    const e=Array(10).fill(0);rows.forEach(d=>d.numbers.forEach(n=>e[Math.abs(n)%10]++));return e;
+  }
+  function decadeStats(rows,game=currentGame){
+    const cfg=GAMES[game],size=cfg.type==='digits'?1:10,b={};
+    rows.forEach(d=>d.numbers.forEach(n=>{const start=cfg.type==='digits'?n:Math.floor((n-1)/size)*size+1;const label=cfg.type==='digits'?String(start):`${start}-${Math.min(start+9,cfg.max)}`;b[label]=(b[label]||0)+1}));
+    return Object.entries(b).map(([label,c])=>({label,c})).sort((a,b)=>parseInt(a.label)-parseInt(b.label));
+  }
+  function heatCells(freq){
+    const values=Object.values(freq),max=Math.max(1,...values);
+    return `<div class="heat-grid">${Object.entries(freq).map(([n,c])=>{const alpha=.12+.72*(c/max);return `<div class="heat-cell" style="background:rgba(35,214,209,${alpha.toFixed(2)})"><div>${n}</div><small>${c}</small></div>`}).join('')}</div>`;
+  }
+  function renderStats(){
+    const rows=drawsWindow(),cfg=GAMES[currentGame],sf=Object.entries(freqFromRows(rows)).map(([n,c])=>({n:+n,c})).sort((a,b)=>b.c-a.c||a.n-b.n);
+    const max=Math.max(1,...sf.map(x=>x.c)),s=stats(),gaps=gapStats(rows),late=Object.entries(gaps).map(([n,g])=>({n:+n,g})).sort((a,b)=>b.g-a.g||a.n-b.n).slice(0,8);
+    const pairs=pairStats(rows).slice(0,10),sums=sumBuckets(rows),endings=endingStats(rows),decades=decadeStats(rows);
+    return `<div class="grid">
+      <article class="card w12"><h3>Ventana de análisis</h3><div class="toolbar"><div class="field"><label>Últimos sorteos</label><select id="statsWindow"><option value="0">Todos</option><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></div><div class="notice" style="margin:0;flex:3">Usa ventanas para detectar cambios recientes sin mezclar todo el historial.</div></div></article>
+      <article class="card w8"><h3>Mapa de frecuencia</h3><div class="sub">Intensidad relativa dentro de la ventana seleccionada</div><div id="heatContainer">${heatCells(freqFromRows(rows))}</div></article>
+      <article class="card"><h3>Indicadores</h3><div class="kpi-row" style="grid-template-columns:1fr 1fr"><div class="kpi"><span class="sub">Sorteos</span><strong>${rows.length}</strong></div><div class="kpi"><span class="sub">Promedio</span><strong>${s.avg.toFixed(1)}</strong></div><div class="kpi"><span class="sub">Suma media</span><strong>${sums.avg.toFixed(1)}</strong></div><div class="kpi"><span class="sub">Rango</span><strong>${cfg.min}-${cfg.max}</strong></div></div></article>
+      <article class="card w8"><h3>Frecuencia completa</h3><canvas id="freqChart" width="900" height="300"></canvas></article>
+      <article class="card"><h3>Más atrasados</h3><div class="sub">Sorteos desde su última aparición</div>${bars(late.map(x=>({n:x.n,c:x.g})),Math.max(1,...late.map(x=>x.g)))}</article>
+      <article class="card w6"><h3>Parejas más repetidas</h3>${pairs.length?`<div class="table-wrap"><table style="min-width:0"><thead><tr><th>Pareja</th><th>Apariciones</th></tr></thead><tbody>${pairs.map(x=>`<tr><td class="mono">${x.pair}</td><td>${x.c}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Necesitas más resultados.</div>`}</article>
+      <article class="card w6"><h3>Terminaciones 0-9</h3>${bars(endings.map((c,n)=>({n,c})),Math.max(1,...endings))}</article>
+      <article class="card w6"><h3>Distribución por grupos</h3>${bars(decades.map(x=>({n:x.label,c:x.c})),Math.max(1,...decades.map(x=>x.c)))}</article>
+      <article class="card w6"><h3>Sumas de cada sorteo</h3><div class="kpi-row"><div class="kpi"><span class="sub">Mínima</span><strong>${sums.min}</strong></div><div class="kpi"><span class="sub">Media</span><strong>${sums.avg.toFixed(1)}</strong></div><div class="kpi"><span class="sub">Máxima</span><strong>${sums.max}</strong></div><div class="kpi"><span class="sub">Muestras</span><strong>${sums.vals.length}</strong></div></div></article>
+      <article class="card w12"><h3>Tabla de frecuencias</h3>${bars(sf,max)}</article>
+    </div>`;
+  }
+  function strategyCombo(rows,mode,game=currentGame){
+    const cfg=GAMES[game],freq=Object.entries(freqFromRows(rows,game)).map(([n,c])=>({n:+n,c})).sort((a,b)=>b.c-a.c||a.n-b.n);
+    if(!rows.length)return null;
+    let pool;
+    if(mode==='hot')pool=freq;
+    else if(mode==='cold')pool=[...freq].reverse();
+    else if(mode==='balanced'){const a=freq.slice(0,Math.max(cfg.count*3,10)),b=[...freq].reverse().slice(0,Math.max(cfg.count*3,10));pool=[];for(let i=0;i<Math.max(a.length,b.length);i++){if(a[i])pool.push(a[i]);if(b[i])pool.push(b[i])}}
+    else pool=freq.map(x=>({...x,c:1}));
+    const picked=[];const used=new Set();
+    for(const x of pool){if(cfg.type==='balls'&&used.has(x.n))continue;picked.push(x.n);used.add(x.n);if(picked.length===cfg.count)break}
+    if(cfg.type==='balls')picked.sort((a,b)=>a-b);return picked;
+  }
+  function runBacktest(mode,train=10){
+    const rows=drawsWindow(0,currentGame),cfg=GAMES[currentGame],results=[];let totalHits=0,exact=0,best=0;
+    for(let i=train;i<rows.length;i++){const history=rows.slice(Math.max(0,i-train),i),combo=strategyCombo(history,mode),actual=rows[i].numbers;if(!combo)continue;const hits=actual.filter(n=>combo.includes(n)).length;totalHits+=hits;best=Math.max(best,hits);if(hits===cfg.count)exact++;results.push({date:rows[i].date,combo,actual,hits})}
+    return {results,totalHits,avg:results.length?totalHits/results.length:0,exact,best};
+  }
+  function renderSimulator(){
+    return `<div class="grid"><article class="card w6"><h3>Configurar prueba retrospectiva</h3><div class="sub">Cada predicción usa solo los sorteos anteriores; nunca mira el resultado futuro.</div><form id="simForm" style="margin-top:14px"><div class="form-grid"><div class="field"><label>Método</label><select id="simMode"><option value="hot">Números calientes</option><option value="cold">Números fríos</option><option value="balanced" selected>Balance caliente/frío</option><option value="random">Referencia neutral</option></select></div><div class="field"><label>Ventana de entrenamiento</label><select id="simTrain"><option>5</option><option selected>10</option><option>25</option><option>50</option></select></div></div><button class="btn primary" style="margin-top:14px">Ejecutar simulación</button></form><div class="notice warn">Una buena puntuación histórica no garantiza resultados futuros. El simulador sirve para comparar reglas de forma consistente.</div></article><article class="card w6"><h3>Resultado del simulador</h3><div id="simOutput"><div class="empty">Ejecuta una prueba para ver métricas.</div></div></article><article class="card w12"><h3>Detalle de evaluaciones</h3><div id="simTable"><div class="empty">Aquí aparecerán los sorteos evaluados.</div></div></article></div>`;
+  }
+  function parseCSV(text){
+    const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim()),rows=[];if(!lines.length)return rows;
+    const delim=(lines[0].match(/;/g)||[]).length>(lines[0].match(/,/g)||[]).length?';':',';
+    const split=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q}else if(ch===delim&&!q){out.push(cur.trim());cur=''}else cur+=ch}out.push(cur.trim());return out};
+    const head=split(lines[0]).map(x=>x.toLowerCase().trim()),dateI=head.findIndex(x=>['fecha','date'].includes(x)),numsI=head.findIndex(x=>['numeros','números','resultado','numbers'].includes(x)),bonusI=head.findIndex(x=>['adicional','bonus','powerball','bolo'].includes(x));
+    for(const line of lines.slice(1)){const c=split(line),date=c[dateI]||'',numbers=parseNums(c[numsI]||''),bonus=bonusI>=0&&c[bonusI]!==''?parseNums(c[bonusI])[0]:null;if(date&&numbers.length)rows.push({date,numbers,bonus})}return rows;
+  }
+  function renderImport(){
+    return `<div class="grid"><article class="card w6"><h3>Importar archivo CSV</h3><div class="sub">Columnas admitidas: fecha, numeros, adicional.</div><div class="field" style="margin-top:14px"><label>Archivo para ${GAMES[currentGame].label}</label><input id="csvFile" type="file" accept=".csv,text/csv"></div><div class="toolbar"><button class="btn" id="sampleCsv">Descargar plantilla</button><button class="btn primary" id="importCsvBtn">Validar e importar</button></div><div class="notice">Ejemplo: <span class="mono">2026-08-02,"3-8-12-27-39",2</span></div></article><article class="card w6"><h3>Vista previa</h3><div id="csvPreview"><div class="empty">Selecciona un archivo para validar sus filas.</div></div></article><article class="card w12"><h3>Reglas de importación</h3><div class="split"><div class="notice">Se rechazan filas con cantidad incorrecta, valores fuera de rango o números principales repetidos.</div><div class="notice">Se evitan duplicados cuando coinciden juego, fecha, números y adicional.</div></div></article></div>`;
+  }
+
   function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
   function weightedPick(items,count,repeat){const work=items.map(x=>({n:x.n,w:x.c+1})),out=[];while(out.length<count&&work.length){let total=work.reduce((a,x)=>a+x.w,0),r=Math.random()*total,idx=0;for(;idx<work.length;idx++){r-=work[idx].w;if(r<=0)break}idx=Math.min(idx,work.length-1);out.push(work[idx].n);if(!repeat)work.splice(idx,1)}return out}
   function generate(mode,count=5){const cfg=GAMES[currentGame],freq=sortedFreq('desc'),rows=[];for(let j=0;j<count;j++){let nums=[];if(mode==='random'){while(nums.length<cfg.count){const n=randomInt(cfg.min,cfg.max);if(cfg.type==='digits'||!nums.includes(n))nums.push(n)}}else if(mode==='hot'){nums=weightedPick(freq,cfg.count,cfg.type==='digits')}else if(mode==='balanced'){const hot=freq.slice(0,Math.max(cfg.count*2,8));const cold=[...freq].reverse().slice(0,Math.max(cfg.count*2,8));const mixed=hot.map((x,i)=>i%2?cold[i]||x:x);nums=weightedPick(mixed,cfg.count,cfg.type==='digits')}else{const mid=[...freq].sort((a,b)=>Math.abs(a.c-(state.draws[currentGame].length?state.draws[currentGame].length*cfg.count/(cfg.max-cfg.min+1):0))-Math.abs(b.c-(state.draws[currentGame].length?state.draws[currentGame].length*cfg.count/(cfg.max-cfg.min+1):0)));nums=weightedPick(mid,cfg.count,cfg.type==='digits')}if(cfg.type==='balls')nums.sort((a,b)=>a-b);rows.push({id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),game:currentGame,numbers:nums,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toISOString()})}return rows}
@@ -120,7 +224,7 @@
 
   function comboHtml(c){return `<div class="combo"><div class="combo-left">${c.numbers.map(n=>`<span class="ball small">${n}</span>`).join('')}${c.bonus!=null?`<span>+</span><span class="ball small red">${c.bonus}</span>`:''}<span class="pill">${esc(c.mode||'guardada')}</span></div><button class="btn small" data-favorite='${encodeURIComponent(JSON.stringify(c))}'>★ Guardar</button></div>`}
   function renderFavorites(){const rows=state.favorites.filter(x=>x.game===currentGame);return `<article class="card w12"><h3>Favoritos · ${GAMES[currentGame].label}</h3><div class="sub">${rows.length} combinaciones guardadas</div>${rows.length?`<div class="generator-output">${rows.map(c=>`<div class="combo"><div class="combo-left">${c.numbers.map(n=>`<span class="ball small hot">${n}</span>`).join('')}${c.bonus!=null?`<span>+</span><span class="ball small red">${c.bonus}</span>`:''}<span class="sub">${new Date(c.created).toLocaleDateString('es-PR')}</span></div><button class="btn small danger" data-unfavorite="${esc(c.id)}">Eliminar</button></div>`).join('')}</div>`:`<div class="empty">Todavía no tienes favoritos para este juego.</div>`}</article>`}
-  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>Exporta una copia de seguridad periódicamente.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
+  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>Importa historiales CSV, compara estrategias en el simulador y exporta respaldo, Excel o PDF.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
 
   function drawBarChart(id,labels,values){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d'),dpr=Math.max(1,devicePixelRatio||1),w=c.clientWidth||900,h=c.clientHeight||240;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const pad={l:42,r:12,t:18,b:38},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,max=Math.max(1,...values),slot=cw/Math.max(1,values.length),bw=Math.max(4,slot*.62);ctx.strokeStyle='#203855';ctx.fillStyle='#91a4ba';ctx.font='12px system-ui';for(let i=0;i<=4;i++){const y=pad.t+ch*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(Math.round(max*(1-i/4)),4,y+4)}values.forEach((v,i)=>{const bh=ch*v/max,x=pad.l+i*slot+(slot-bw)/2,y=pad.t+ch-bh;const g=ctx.createLinearGradient(0,y,0,pad.t+ch);g.addColorStop(0,'#23d6d1');g.addColorStop(1,'#168bad');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,bw,bh,5):ctx.rect(x,y,bw,bh);ctx.fill();ctx.fillStyle='#91a4ba';ctx.textAlign='center';const step=Math.ceil(labels.length/18);if(i%step===0)ctx.fillText(labels[i],x+bw/2,h-12)});ctx.textAlign='left'}
 
@@ -135,15 +239,29 @@
     if(currentView==='generador'){
       document.getElementById('generatorForm').onsubmit=e=>{e.preventDefault();const rows=generate(document.getElementById('modeInput').value,+document.getElementById('countInput').value);document.getElementById('generatorOutput').innerHTML=rows.map(comboHtml).join('');bindFavoriteButtons()}
     }
+    if(currentView==='simulador'){
+      document.getElementById('simForm').onsubmit=e=>{e.preventDefault();const mode=document.getElementById('simMode').value,train=+document.getElementById('simTrain').value,r=runBacktest(mode,train),cfg=GAMES[currentGame];document.getElementById('simOutput').innerHTML=r.results.length?`<div class="kpi-row"><div class="kpi"><span class="sub">Pruebas</span><strong>${r.results.length}</strong></div><div class="kpi"><span class="sub">Aciertos medios</span><strong>${r.avg.toFixed(2)}</strong></div><div class="kpi"><span class="sub">Mejor resultado</span><strong>${r.best}/${cfg.count}</strong></div><div class="kpi"><span class="sub">Exactos</span><strong>${r.exact}</strong></div></div><div class="notice">Puntuación descriptiva: <span class="score">${Math.min(100,Math.round(r.avg/cfg.count*100))}%</span></div>`:`<div class="empty">Necesitas más de ${train} sorteos para evaluar.</div>`;document.getElementById('simTable').innerHTML=r.results.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Combinación generada</th><th>Resultado real</th><th>Aciertos</th></tr></thead><tbody>${r.results.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.combo.join('-')}</td><td>${x.actual.join('-')}</td><td><b>${x.hits}</b></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Sin evaluaciones.</div>`}
+    }
+    if(currentView==='importar'){
+      let parsed=[];const file=document.getElementById('csvFile'),preview=document.getElementById('csvPreview');
+      file.onchange=async()=>{parsed=file.files[0]?parseCSV(await file.files[0].text()):[];const cfg=GAMES[currentGame],valid=parsed.filter(x=>!validate(cfg,x.numbers,x.bonus));preview.innerHTML=parsed.length?`<div class="kpi-row"><div class="kpi"><span class="sub">Filas</span><strong>${parsed.length}</strong></div><div class="kpi"><span class="sub">Válidas</span><strong>${valid.length}</strong></div></div><div class="table-wrap"><table style="min-width:0"><thead><tr><th>Fecha</th><th>Números</th><th>Estado</th></tr></thead><tbody>${parsed.slice(0,20).map(x=>{const err=validate(cfg,x.numbers,x.bonus);return `<tr><td>${esc(x.date)}</td><td>${esc(x.numbers.join('-'))}</td><td>${err?`⚠ ${esc(err)}`:'✓ Válida'}</td></tr>`}).join('')}</tbody></table></div>`:`<div class="empty">No se detectaron filas.</div>`};
+      document.getElementById('sampleCsv').onclick=()=>download(`${currentGame}-plantilla.csv`,'fecha,numeros,adicional\n2026-08-02,"'+Array.from({length:GAMES[currentGame].count},(_,i)=>GAMES[currentGame].min+i).join('-')+'",','text/csv');
+      document.getElementById('importCsvBtn').onclick=()=>{const cfg=GAMES[currentGame];let added=0,invalid=0,dupes=0;parsed.forEach(x=>{const err=validate(cfg,x.numbers,x.bonus);if(err){invalid++;return}const duplicate=state.draws[currentGame].some(d=>d.date===x.date&&JSON.stringify(d.numbers)===JSON.stringify(x.numbers)&&d.bonus===x.bonus);if(duplicate){dupes++;return}state.draws[currentGame].push({id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),...x});added++});save();toast(`${added} importados · ${dupes} duplicados · ${invalid} inválidos`);render()}
+    }
+    if(currentView==='estadisticas'){
+      const sw=document.getElementById('statsWindow');if(sw)sw.onchange=()=>{const rows=drawsWindow(+sw.value),freq=freqFromRows(rows);document.getElementById('heatContainer').innerHTML=heatCells(freq);const f=Object.entries(freq).map(([n,c])=>({n:+n,c})).sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}
+    }
     if(currentView==='favoritos')document.querySelectorAll('[data-unfavorite]').forEach(b=>b.onclick=()=>{state.favorites=state.favorites.filter(x=>x.id!==b.dataset.unfavorite);save();render()});
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,generador:renderGenerator,favoritos:renderFavorites,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
   document.getElementById('exportBtn').onclick=()=>download(`loteria-pr-backup-${today()}.json`,JSON.stringify(state,null,2));
+  document.getElementById('pdfBtn').onclick=()=>window.print();
+  document.getElementById('excelBtn').onclick=()=>{const rows=[['Juego','Fecha','Números','Adicional']];GAME_KEYS.forEach(k=>state.draws[k].forEach(d=>rows.push([GAMES[k].label,d.date,d.numbers.join('-'),d.bonus??''])));const table='<table>'+rows.map((r,i)=>'<tr>'+r.map(v=>`<${i?'td':'th'}>${esc(v)}</${i?'td':'th'}>`).join('')+'</tr>').join('')+'</table>';download(`loteria-pr-${today()}.xls`,`<html><head><meta charset="utf-8"></head><body>${table}</body></html>`,'application/vnd.ms-excel')};
   document.getElementById('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!data.draws)throw 0;state=Object.assign(base(),data);save();render();toast('Copia importada correctamente')}catch{toast('El archivo no es una copia válida')}e.target.value=''};
   document.getElementById('resetBtn').onclick=()=>{if(confirm('Esto borrará todos los resultados y favoritos guardados en este navegador. ¿Continuar?')){state=base();save();render();toast('Datos reiniciados')}};
   window.addEventListener('resize',()=>{if(currentView==='resumen'||currentView==='estadisticas')render()});
