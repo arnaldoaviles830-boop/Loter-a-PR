@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#06101f" />
-  <title>Lotería PR · Motor de análisis V3.1</title>
+  <title>Lotería PR · Dashboard inteligente V3.2</title>
   <style>
     :root{--bg:#06101f;--panel:#0d1b2d;--panel2:#10243c;--line:#203855;--text:#f4f7fb;--muted:#91a4ba;--cyan:#23d6d1;--orange:#ffb020;--red:#ff5c63;--green:#35d07f;--purple:#a987ff;--shadow:0 18px 60px rgba(0,0,0,.28);--r:18px}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0,#102a49 0,transparent 34%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
@@ -56,12 +56,36 @@
     .trend-up{color:#42e69b;font-weight:900}.trend-down{color:#ff7d95;font-weight:900}.trend-flat{color:#ffcf70;font-weight:900}
     @media(max-width:760px){.factor-grid{grid-template-columns:repeat(2,1fr)}.analysis-card{align-items:flex-start}}
 
+
+    .hero-pro{background:
+      radial-gradient(circle at 15% 10%,rgba(35,214,209,.18),transparent 28%),
+      radial-gradient(circle at 85% 0%,rgba(137,92,246,.20),transparent 32%),
+      linear-gradient(135deg,#0b1a2c,#07111e 60%,#091626)}
+    .dashboard-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+    .metric-card{grid-column:span 3;min-height:122px;padding:16px;border-radius:16px;background:linear-gradient(160deg,#0d2032,#081522);border:1px solid var(--line);position:relative;overflow:hidden}
+    .metric-card:before{content:"";position:absolute;width:110px;height:110px;border-radius:50%;right:-35px;top:-35px;background:rgba(35,214,209,.08)}
+    .metric-card strong{display:block;font-size:1.8rem;margin-top:8px}
+    .signal-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#10263a;border:1px solid var(--line);font-size:.78rem}
+    .recommendation{padding:18px;border-radius:18px;background:linear-gradient(135deg,rgba(137,92,246,.18),rgba(35,214,209,.10));border:1px solid rgba(137,92,246,.35)}
+    .game-status{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    .game-mini{padding:12px;border:1px solid var(--line);border-radius:13px;background:#091827}
+    .game-mini b{display:block;margin-bottom:4px}
+    .spark{width:100%;height:52px}
+    .rank-badge{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#12263b;font-weight:900}
+    .favorite-note{width:100%;min-height:64px;resize:vertical}
+    .status-hit{color:#42e69b}.status-miss{color:#ff7d95}.status-pending{color:#ffcf70}
+    .compare-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .compare-card{padding:15px;border-radius:15px;border:1px solid var(--line);background:#091827}
+    .radar-wrap{max-width:620px;margin:auto}
+    @media(max-width:900px){.metric-card{grid-column:span 6}.compare-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:620px){.metric-card{grid-column:span 12}.game-status,.compare-grid{grid-template-columns:1fr}}
+
   </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Motor de análisis local · V3.1</small></div></div>
+    <div class="brand"><div class="logo">PR</div><div><h1>Lotería PR</h1><small>Dashboard inteligente local · V3.2</small></div></div>
     <div class="top-actions">
       <button class="btn" id="exportBtn">⬇ <span>Respaldo</span></button><button class="btn" id="excelBtn">▦ <span>Excel</span></button><button class="btn" id="pdfBtn">▣ <span>PDF</span></button>
       <label class="btn">⬆ <span>Importar</span><input id="importFile" type="file" accept="application/json" hidden></label>
@@ -103,7 +127,7 @@
     powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
   };
   const GAME_KEYS=Object.keys(GAMES);
-  const NAV=[['resumen','⌂','Resumen'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos'],['ayuda','?','Ayuda']];
+  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['comparar','⇄','Comparar juegos'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['ayuda','?','Ayuda']];
   let state=load();
   let currentView='resumen';
   let currentGame='pega3_dia';
@@ -115,7 +139,7 @@
   function today(){return new Date().toISOString().slice(0,10)}
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add('hidden'),2800)}
   function allDraws(){return GAME_KEYS.reduce((n,k)=>n+state.draws[k].length,0)}
-  function viewInfo(){return {resumen:['Resumen','Vista general de tus sorteos y tendencias.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],tendencias:['Centro de tendencias','Compara impulso, frecuencia y atraso entre distintas ventanas.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador Pro','Crea combinaciones explicadas con puntuación interna de afinidad estadística.'],favoritos:['Favoritos','Tus combinaciones guardadas en este dispositivo.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
+  function viewInfo(){return {resumen:['Dashboard Pro','Resumen visual, recomendación del día y estado de todos los juegos.'],agregar:['Agregar resultados','Registra sorteos manualmente o pega un bloque de resultados.'],historial:['Historial','Consulta, filtra y elimina resultados guardados.'],estadisticas:['Estadísticas avanzadas','Analiza ventanas recientes, atrasos, sumas, terminaciones y parejas.'],tendencias:['Centro de tendencias','Compara impulso, frecuencia y atraso entre distintas ventanas.'],comparar:['Comparador de juegos','Contrasta actividad, estabilidad y tendencias entre los juegos cargados.'],simulador:['Simulador histórico','Prueba métodos usando únicamente información previa a cada sorteo.'],importar:['Importar historial CSV','Carga muchos resultados, valida filas y evita duplicados.'],generador:['Generador Pro','Crea combinaciones explicadas con puntuación interna de afinidad estadística.'],favoritos:['Favoritos inteligentes','Añade notas, clasifica estrategias y revisa coincidencias con sorteos posteriores.'],ayuda:['Ayuda','Cómo usar la aplicación y entender sus límites.']}[currentView]}
   function renderHeader(){const [t,p]=viewInfo();document.getElementById('heroTitle').textContent=t;document.getElementById('heroText').textContent=p;document.getElementById('drawCount').textContent=allDraws();document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===currentView));document.querySelectorAll('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===currentGame))}
   function initNav(){const html=NAV.map(([id,ic,lab])=>`<button data-nav="${id}">${ic} &nbsp;${lab}</button>`).join('');document.getElementById('desktopNav').innerHTML=html;document.getElementById('mobileNav').innerHTML=NAV.slice(0,6).map(([id,,lab])=>`<button class="btn small" data-nav="${id}">${lab}</button>`).join('');document.getElementById('mobileDock').innerHTML=NAV.slice(0,5).map(([id,ic,lab])=>`<button data-nav="${id}"><div style="font-size:1.2rem">${ic}</div>${lab}</button>`).join('');document.getElementById('mobileDock').classList.remove('hidden');document.getElementById('gameTabs').innerHTML=GAME_KEYS.map(k=>`<button class="btn small" data-game="${k}">${GAMES[k].short}</button>`).join('')}
   document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n){currentView=n.dataset.nav;render();return}const g=e.target.closest('[data-game]');if(g){currentGame=g.dataset.game;render();return}})
@@ -126,15 +150,6 @@
   function latest(game=currentGame){return [...state.draws[game]].sort((a,b)=>b.date.localeCompare(a.date))[0]}
   function stats(game=currentGame){const cfg=GAMES[game],draws=state.draws[game];let even=0,odd=0,sum=0,total=0;draws.forEach(d=>d.numbers.forEach(n=>{n%2?odd++:even++;sum+=n;total++}));return {draws:draws.length,even,odd,avg:total?(sum/total):0}}
   function bars(items,max){return `<div class="bar-list">${items.map(x=>`<div class="bar-line"><b>${x.n}</b><div class="bar"><i style="width:${max?Math.round(x.c/max*100):0}%"></i></div><span>${x.c}</span></div>`).join('')}</div>`}
-
-  function renderSummary(){const cfg=GAMES[currentGame],hot=sortedFreq('desc').slice(0,5),cold=sortedFreq('asc').slice(0,5),last=latest(),s=stats();return `<div class="grid">
-    <article class="card"><h3>Último resultado</h3><div class="sub">${last?esc(last.date):'Aún no hay sorteos'}</div>${last?`<div class="number-row">${renderBalls(last.numbers)}${last.bonus!=null?`<span class="ball red">${last.bonus}</span>`:''}</div>`:`<div class="empty">Agrega resultados para comenzar.</div>`}</article>
-    <article class="card"><h3>Números calientes</h3><div class="sub">Mayor frecuencia registrada</div><div class="number-row">${renderBalls(hot.map(x=>x.n),'hot')}</div></article>
-    <article class="card"><h3>Números fríos</h3><div class="sub">Menor frecuencia registrada</div><div class="number-row">${renderBalls(cold.map(x=>x.n),'cold')}</div></article>
-    <article class="card w6"><h3>Frecuencia destacada</h3><div class="sub">Juego: ${cfg.label}</div>${bars(hot,Math.max(1,...hot.map(x=>x.c)))}</article>
-    <article class="card w6"><h3>Balance</h3><div class="sub">Distribución de los números guardados</div><div class="grid" style="margin-top:12px"><div class="card" style="grid-column:span 6;box-shadow:none"><span class="sub">Pares</span><div class="metric cyan">${s.even}</div></div><div class="card" style="grid-column:span 6;box-shadow:none"><span class="sub">Impares</span><div class="metric orange">${s.odd}</div></div></div><div class="notice">Promedio numérico: <b>${s.avg.toFixed(1)}</b>. Basado en ${s.draws} sorteos.</div></article>
-    <article class="card w12"><h3>Actividad por juego</h3><div class="sub">Cantidad de sorteos registrados</div><canvas id="activityChart" width="900" height="240"></canvas></article>
-  </div>`}
 
   function renderAdd(){const cfg=GAMES[currentGame];return `<div class="grid"><article class="card w6"><h3>Entrada manual</h3><div class="sub">${cfg.label}: ${cfg.count} ${cfg.type==='digits'?'dígitos':'números'} entre ${cfg.min} y ${cfg.max}.</div><form id="manualForm" style="margin-top:14px"><div class="form-grid"><div class="field"><label>Fecha</label><input id="dateInput" type="date" value="${today()}" required></div><div class="field"><label>Números</label><input id="numbersInput" placeholder="Ejemplo: ${cfg.type==='digits'?'1 2 3':'4, 12, 21, 31, 40'}" required></div>${cfg.bonusMax?`<div class="field"><label>${cfg.bonusLabel}</label><input id="bonusInput" type="number" min="1" max="${cfg.bonusMax}" placeholder="1-${cfg.bonusMax}"></div>`:''}</div><button class="btn primary" style="margin-top:14px">Guardar resultado</button></form><div class="notice">Puedes separar los números con espacios, comas o guiones.</div></article>
   <article class="card w6"><h3>Pegar bloque de resultados</h3><div class="sub">Formato compatible con varios juegos a la vez.</div><form id="pasteForm" style="margin-top:14px"><div class="field"><textarea id="pasteInput" placeholder="FECHA: 2026-08-02\nPEGA3-DIA: 1 2 3\nPEGA4-NOCHE: 4 5 6 7\nLOTO: 3 8 12 27 39 | 2\nPOWERBALL: 4 18 26 44 61 | 11"></textarea></div><button class="btn primary" style="margin-top:14px">Procesar bloque</button></form></article></div>`}
@@ -310,13 +325,67 @@
     return `<div class="analysis-card"><div class="confidence-ring" style="--score:${f.score}"><b>${f.score}</b></div><div style="min-width:0;flex:1"><div class="combo-left">${c.numbers.map(n=>`<span class="ball small">${n}</span>`).join('')}${c.bonus!=null?`<span>+</span><span class="ball small red">${c.bonus}</span>`:''}<span class="pill">${esc(c.mode)}</span></div><div class="explain">${esc(c.explanation||explainCombo(c))}</div><div class="factor-grid"><div class="factor"><b>${f.frequency}</b><span class="sub">Frecuencia</span></div><div class="factor"><b>${f.trend}</b><span class="sub">Tendencia</span></div><div class="factor"><b>${f.delay}</b><span class="sub">Atraso</span></div><div class="factor"><b>${f.balance}</b><span class="sub">Balance</span></div></div></div><button class="btn small" data-favorite='${encodeURIComponent(JSON.stringify(c))}'>★</button></div>`;
   }
 
-  function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
-  function weightedPick(items,count,repeat){const work=items.map(x=>({n:x.n,w:x.c+1})),out=[];while(out.length<count&&work.length){let total=work.reduce((a,x)=>a+x.w,0),r=Math.random()*total,idx=0;for(;idx<work.length;idx++){r-=work[idx].w;if(r<=0)break}idx=Math.min(idx,work.length-1);out.push(work[idx].n);if(!repeat)work.splice(idx,1)}return out}
-  function generate(mode,count=5){const cfg=GAMES[currentGame],freq=sortedFreq('desc'),rows=[];for(let j=0;j<count;j++){let nums=[];if(mode==='random'){while(nums.length<cfg.count){const n=randomInt(cfg.min,cfg.max);if(cfg.type==='digits'||!nums.includes(n))nums.push(n)}}else if(mode==='hot'){nums=weightedPick(freq,cfg.count,cfg.type==='digits')}else if(mode==='balanced'){const hot=freq.slice(0,Math.max(cfg.count*2,8));const cold=[...freq].reverse().slice(0,Math.max(cfg.count*2,8));const mixed=hot.map((x,i)=>i%2?cold[i]||x:x);nums=weightedPick(mixed,cfg.count,cfg.type==='digits')}else{const mid=[...freq].sort((a,b)=>Math.abs(a.c-(state.draws[currentGame].length?state.draws[currentGame].length*cfg.count/(cfg.max-cfg.min+1):0))-Math.abs(b.c-(state.draws[currentGame].length?state.draws[currentGame].length*cfg.count/(cfg.max-cfg.min+1):0)));nums=weightedPick(mid,cfg.count,cfg.type==='digits')}if(cfg.type==='balls')nums.sort((a,b)=>a-b);rows.push({id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),game:currentGame,numbers:nums,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toISOString()})}return rows}
 
-  function comboHtml(c){return `<div class="combo"><div class="combo-left">${c.numbers.map(n=>`<span class="ball small">${n}</span>`).join('')}${c.bonus!=null?`<span>+</span><span class="ball small red">${c.bonus}</span>`:''}<span class="pill">${esc(c.mode||'guardada')}</span></div><button class="btn small" data-favorite='${encodeURIComponent(JSON.stringify(c))}'>★ Guardar</button></div>`}
-  function renderFavorites(){const rows=state.favorites.filter(x=>x.game===currentGame);return `<article class="card w12"><h3>Favoritos · ${GAMES[currentGame].label}</h3><div class="sub">${rows.length} combinaciones guardadas</div>${rows.length?`<div class="generator-output">${rows.map(c=>`<div class="combo"><div class="combo-left">${c.numbers.map(n=>`<span class="ball small hot">${n}</span>`).join('')}${c.bonus!=null?`<span>+</span><span class="ball small red">${c.bonus}</span>`:''}<span class="sub">${new Date(c.created).toLocaleDateString('es-PR')}</span></div><button class="btn small danger" data-unfavorite="${esc(c.id)}">Eliminar</button></div>`).join('')}</div>`:`<div class="empty">Todavía no tienes favoritos para este juego.</div>`}</article>`}
-  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>Usa Tendencias para comparar ventanas y Generador Pro para crear combinaciones explicadas mediante una puntuación estadística interna.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
+  function allGameMetrics(){
+    return GAME_KEYS.map(game=>{
+      const rows=drawsWindow(0,game),cfg=GAMES[game],freq=freqFromRows(rows,game),vals=Object.values(freq),total=rows.length;
+      const mean=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+      const variance=vals.length?vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length:0;
+      const stability=Math.max(0,100-Math.min(100,Math.sqrt(variance)*18));
+      const recent=rows.slice(-7),activity=recent.length;
+      const latest=rows.at(-1)||null;
+      const model=numberModel(game).slice(0,cfg.count);
+      return {game,label:cfg.label,total,activity,stability:Math.round(stability),latest,top:model.map(x=>x.n),avgScore:model.length?Math.round(model.reduce((a,b)=>a+b.score,0)/model.length):0};
+    });
+  }
+  function dailyRecommendation(){
+    const cfg=GAMES[currentGame],rows=drawsWindow(),model=numberModel(),mode=rows.length>=25?'balanced':rows.length>=10?'mixed':'conservative';
+    const combo=proGenerate(mode,1)[0];
+    if(!combo)return null;
+    combo.mode=mode;combo.explanation=`Perfil ${mode}: ${explainCombo(combo)}. Basado en ${rows.length} sorteos cargados.`;
+    return combo;
+  }
+  function drawSpark(canvasId,values){
+    const c=document.getElementById(canvasId);if(!c||!values.length)return;const ctx=c.getContext('2d'),dpr=devicePixelRatio||1,w=c.clientWidth||240,h=c.clientHeight||52;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
+    const min=Math.min(...values),max=Math.max(...values),pad=5,step=(w-pad*2)/Math.max(1,values.length-1);
+    ctx.beginPath();values.forEach((v,i)=>{const x=pad+i*step,y=h-pad-(max===min?.5:(v-min)/(max-min))*(h-pad*2);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle='#23d6d1';ctx.lineWidth=2;ctx.stroke();
+    ctx.lineTo(w-pad,h-pad);ctx.lineTo(pad,h-pad);ctx.closePath();const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(35,214,209,.28)');g.addColorStop(1,'rgba(35,214,209,0)');ctx.fillStyle=g;ctx.fill();
+  }
+  function renderSummary(){
+    const metrics=allGameMetrics(),m=metrics.find(x=>x.game===currentGame),rec=dailyRecommendation(),rows=drawsWindow(),sums=sumBuckets(rows),cfg=GAMES[currentGame];
+    const trendData=rows.slice(-14).map(d=>d.numbers.reduce((a,b)=>a+b,0));
+    return `<section class="hero hero-pro"><div><span class="pill">FASE 3.2</span><h2>Dashboard inteligente</h2><p>Lectura rápida del historial, señales recientes y combinación destacada del juego seleccionado.</p></div><div class="top-actions"><span class="signal-chip">● ${rows.length} sorteos analizados</span><span class="signal-chip">Juego: ${cfg.label}</span></div></section>
+      <div class="dashboard-grid" style="margin-top:14px">
+        <div class="metric-card"><span class="sub">Sorteos cargados</span><strong>${rows.length}</strong><span class="signal-chip">${rows.length>=30?'Base sólida':rows.length>=10?'Base media':'Base pequeña'}</span></div>
+        <div class="metric-card"><span class="sub">Estabilidad de frecuencia</span><strong>${m?.stability||0}%</strong><span class="signal-chip">${(m?.stability||0)>=70?'Uniforme':'Variable'}</span></div>
+        <div class="metric-card"><span class="sub">Suma promedio</span><strong>${sums.avg.toFixed(1)}</strong><span class="signal-chip">Rango ${sums.min}-${sums.max}</span></div>
+        <div class="metric-card"><span class="sub">Afinidad del modelo</span><strong>${rec?.factors?.score||0}</strong><span class="signal-chip">Índice interno</span></div>
+        <article class="card w8"><h3>Recomendación destacada</h3>${rec?`<div class="recommendation"><div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap"><div><div class="sub">Perfil ${esc(rec.mode)}</div><div class="combo-left" style="margin-top:10px">${rec.numbers.map(n=>`<span class="ball">${n}</span>`).join('')}${rec.bonus!=null?`<span>+</span><span class="ball red">${rec.bonus}</span>`:''}</div></div><div class="confidence-ring" style="--score:${rec.factors.score}"><b>${rec.factors.score}</b></div></div><p class="sub" style="margin-top:12px">${esc(rec.explanation)}</p><button class="btn small" data-favorite='${encodeURIComponent(JSON.stringify(rec))}'>★ Guardar recomendación</button></div>`:`<div class="empty">Agrega resultados para generar una recomendación.</div>`}</article>
+        <article class="card"><h3>Actividad reciente</h3><div class="sub">Suma de números en los últimos 14 sorteos</div><canvas id="summarySpark" class="spark"></canvas><div class="kpi-row" style="grid-template-columns:1fr 1fr"><div class="kpi"><span class="sub">Últimos 7</span><strong>${Math.min(7,rows.length)}</strong></div><div class="kpi"><span class="sub">Más fuerte</span><strong>${m?.top?.[0]??'—'}</strong></div></div></article>
+        <article class="card w12"><h3>Estado de todos los juegos</h3><div class="game-status">${metrics.map(x=>`<div class="game-mini"><b>${x.label}</b><span class="sub">${x.total} sorteos</span><div class="progress"><i style="width:${Math.min(100,x.stability)}%"></i></div><div style="display:flex;justify-content:space-between;margin-top:8px"><span>Estabilidad ${x.stability}%</span><span>${x.latest?x.latest.date:'Sin datos'}</span></div></div>`).join('')}</div></article>
+      </div>`;
+  }
+  function comparisonMetrics(game){
+    const rows=drawsWindow(0,game),cfg=GAMES[game],freq=freqFromRows(rows,game),model=numberModel(game),pairs=pairStats(rows),gaps=gapStats(rows,game);
+    const vals=Object.values(freq),max=Math.max(1,...vals),coverage=vals.filter(v=>v>0).length/Math.max(1,vals.length)*100;
+    const avgGap=Object.values(gaps).reduce((a,b)=>a+b,0)/Math.max(1,Object.values(gaps).length);
+    const concentration=vals.reduce((a,b)=>a+(b/max)**2,0)/Math.max(1,vals.length)*100;
+    return {game,label:cfg.label,draws:rows.length,coverage:Math.round(coverage),trend:Math.round(model.slice(0,Math.max(1,cfg.count)).reduce((a,b)=>a+b.recent,0)/Math.max(1,cfg.count)*100),delay:Math.round(Math.min(100,avgGap*8)),pairs:Math.min(100,(pairs[0]?.c||0)*10),concentration:Math.round(concentration)};
+  }
+  function renderCompare(){
+    const data=GAME_KEYS.map(comparisonMetrics).sort((a,b)=>b.draws-a.draws);
+    const best=data.reduce((a,b)=>b.draws>a.draws?b:a,data[0]);
+    return `<div class="grid"><article class="card w12"><h3>Comparación general</h3><div class="compare-grid">${data.map((x,i)=>`<div class="compare-card"><div style="display:flex;gap:10px;align-items:center"><span class="rank-badge">${i+1}</span><div><b>${x.label}</b><div class="sub">${x.draws} sorteos</div></div></div><div class="factor-grid"><div class="factor"><b>${x.coverage}%</b><span class="sub">Cobertura</span></div><div class="factor"><b>${x.trend}</b><span class="sub">Impulso</span></div><div class="factor"><b>${x.delay}</b><span class="sub">Atraso</span></div><div class="factor"><b>${x.pairs}</b><span class="sub">Parejas</span></div></div></div>`).join('')}</div></article>
+      <article class="card w7"><h3>Tabla comparativa</h3><div class="table-wrap"><table><thead><tr><th>Juego</th><th>Sorteos</th><th>Cobertura</th><th>Impulso</th><th>Concentración</th></tr></thead><tbody>${data.map(x=>`<tr><td>${x.label}</td><td>${x.draws}</td><td>${x.coverage}%</td><td>${x.trend}</td><td>${x.concentration}</td></tr>`).join('')}</tbody></table></div></article>
+      <article class="card w5"><h3>Lectura rápida</h3><div class="notice"><b>Mayor base de datos:</b> ${best?.label||'—'} con ${best?.draws||0} sorteos.</div><div class="notice warn">Las métricas entre juegos no representan mejores probabilidades de premio; solo comparan la calidad y características de los datos cargados.</div></article></div>`;
+  }
+  function favoriteStatus(f){
+    const rows=drawsWindow(0,f.game||currentGame),created=(f.created||'').slice(0,10),future=rows.filter(d=>!created||d.date>=created);
+    if(!future.length)return {label:'Pendiente',cls:'status-pending',hits:0,date:''};
+    let best={hits:-1,date:''};future.forEach(d=>{const hits=d.numbers.filter(n=>f.numbers.includes(n)).length;if(hits>best.hits)best={hits,date:d.date}});
+    return {label:`Mejor: ${best.hits} acierto${best.hits===1?'':'s'}`,cls:best.hits>0?'status-hit':'status-miss',hits:best.hits,date:best.date};
+  }
+  function renderHelp(){return `<div class="grid"><article class="card w6"><h3>Cómo comenzar</h3><ol class="sub" style="line-height:1.9"><li>Selecciona un juego en la parte superior.</li><li>Abre <b>Agregar</b> y registra resultados.</li><li>Consulta <b>Estadísticas</b> para ver frecuencias.</li><li>Usa el <b>Generador</b> y guarda combinaciones.</li><li>El Dashboard Pro resume todos los juegos; Comparar juegos contrasta la calidad del historial; Favoritos inteligentes permite guardar notas y revisar coincidencias posteriores.</li></ol></article><article class="card w6"><h3>Privacidad y datos</h3><p class="sub" style="line-height:1.7">Los resultados, favoritos y configuraciones se guardan únicamente en el almacenamiento del navegador de este dispositivo. Si borras los datos del navegador, podrías perderlos. Usa Exportar para crear una copia JSON.</p></article><article class="card w12"><h3>Límites del análisis</h3><p class="sub" style="line-height:1.7">Cada sorteo es aleatorio e independiente. Que un número haya aparecido mucho o poco no cambia matemáticamente su probabilidad en el próximo sorteo. Las etiquetas “caliente”, “frío” y “balanceado” describen el historial cargado; no deben interpretarse como garantía, ventaja segura ni asesoría financiera.</p></article></div>`}
 
   function drawBarChart(id,labels,values){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d'),dpr=Math.max(1,devicePixelRatio||1),w=c.clientWidth||900,h=c.clientHeight||240;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const pad={l:42,r:12,t:18,b:38},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,max=Math.max(1,...values),slot=cw/Math.max(1,values.length),bw=Math.max(4,slot*.62);ctx.strokeStyle='#203855';ctx.fillStyle='#91a4ba';ctx.font='12px system-ui';for(let i=0;i<=4;i++){const y=pad.t+ch*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(Math.round(max*(1-i/4)),4,y+4)}values.forEach((v,i)=>{const bh=ch*v/max,x=pad.l+i*slot+(slot-bw)/2,y=pad.t+ch-bh;const g=ctx.createLinearGradient(0,y,0,pad.t+ch);g.addColorStop(0,'#23d6d1');g.addColorStop(1,'#168bad');ctx.fillStyle=g;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,bw,bh,5):ctx.rect(x,y,bw,bh);ctx.fill();ctx.fillStyle='#91a4ba';ctx.textAlign='center';const step=Math.ceil(labels.length/18);if(i%step===0)ctx.fillText(labels[i],x+bw/2,h-12)});ctx.textAlign='left'}
 
@@ -331,6 +400,14 @@
     if(currentView==='generador'){
       document.getElementById('generatorForm').onsubmit=e=>{e.preventDefault();const rows=proGenerate(document.getElementById('modeInput').value,+document.getElementById('countInput').value);document.getElementById('generatorOutput').innerHTML=rows.map(proComboHtml).join('');bindFavoriteButtons()}
     }
+
+    if(currentView==='resumen'){
+      const vals=drawsWindow().slice(-14).map(d=>d.numbers.reduce((a,b)=>a+b,0));requestAnimationFrame(()=>drawSpark('summarySpark',vals));bindFavoriteButtons();
+    }
+    if(currentView==='favoritos'){
+      document.querySelectorAll('[data-save-note]').forEach(b=>b.onclick=()=>{const id=b.dataset.saveNote,ta=document.querySelector(`[data-note="${id}"]`),f=state.favorites.find(x=>x.id===id);if(f){f.note=ta.value;save();toast('Nota guardada')}});
+    }
+
     if(currentView==='simulador'){
       document.getElementById('simForm').onsubmit=e=>{e.preventDefault();const mode=document.getElementById('simMode').value,train=+document.getElementById('simTrain').value,r=runBacktest(mode,train),cfg=GAMES[currentGame];document.getElementById('simOutput').innerHTML=r.results.length?`<div class="kpi-row"><div class="kpi"><span class="sub">Pruebas</span><strong>${r.results.length}</strong></div><div class="kpi"><span class="sub">Aciertos medios</span><strong>${r.avg.toFixed(2)}</strong></div><div class="kpi"><span class="sub">Mejor resultado</span><strong>${r.best}/${cfg.count}</strong></div><div class="kpi"><span class="sub">Exactos</span><strong>${r.exact}</strong></div></div><div class="notice">Puntuación descriptiva: <span class="score">${Math.min(100,Math.round(r.avg/cfg.count*100))}%</span></div>`:`<div class="empty">Necesitas más de ${train} sorteos para evaluar.</div>`;document.getElementById('simTable').innerHTML=r.results.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Combinación generada</th><th>Resultado real</th><th>Aciertos</th></tr></thead><tbody>${r.results.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.combo.join('-')}</td><td>${x.actual.join('-')}</td><td><b>${x.hits}</b></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Sin evaluaciones.</div>`}
     }
@@ -347,7 +424,7 @@
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,comparar:renderCompare,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
