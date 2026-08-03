@@ -1,7 +1,7 @@
 {
-  "name": "Lotería PR Analytics V4.4",
-  "short_name": "Lotería PR",
-  "description": "Dashboard inteligente, señales dinámicas, predicción y ranking.",
+  "name": "Lotería PR Analytics V5.0",
+  "short_name": "Lotería PR V5",
+  "description": "Plataforma inteligente con laboratorio adaptativo, señales, ranking y nube.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

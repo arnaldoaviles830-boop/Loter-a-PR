@@ -1,4 +1,4 @@
-const CACHE_NAME='loteria-pr-v4-4';
+const CACHE_NAME='loteria-pr-v5-0';
 const CORE=['./','./index.html','./manifest.webmanifest','./icon.svg'];
 
 self.addEventListener('install',event=>{
