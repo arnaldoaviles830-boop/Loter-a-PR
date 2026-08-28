@@ -656,7 +656,7 @@ const THEME_KEY='loteria-pr-theme';
       syncBusy=false;
       if(currentView==='datos')render();
     }
-  }
+  function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
   function renderDataCenter(){
     const cfg=syncConfig(),meta=syncMeta(),log=getSyncLog(),status=syncBusy?'busy':meta.status==='connected'?'ok':meta.status==='error'?'error':'';
     const statusText=syncBusy?'Sincronizando…':meta.status==='connected'?'Conectado':meta.status==='error'?'Error de conexión':'Sin comprobar';
