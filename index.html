@@ -609,21 +609,21 @@ const THEME_KEY='loteria-pr-theme';
       const parsed=normalizeRemoteResult(item);
       if(!parsed.ok){invalid++;if(errors.length<5)errors.push(parsed.error);return}
       const x=parsed.value;
-      const duplicate=state.draws[x.game].some(d=>d.date===x.date&&JSON.stringify(d.numbers)===JSON.stringify(x.numbers)&&d.bonus===x.bonus);
+      const duplicate=window.LoteriaAppState.draws[x.game].some(d=>d.date===x.date&&JSON.stringify(d.numbers)===JSON.stringify(x.numbers)&&d.bonus===x.bonus);
       if(duplicate){duplicates++;return}
-      state.draws[x.game].push({
+     window.LoteriaAppState.draws[x.game].push({
         id:crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`,
         date:x.date,numbers:x.numbers,bonus:x.bonus,source:x.source,syncedAt:new Date().toISOString()
       });
       added++;
     });
-    if(added)save();
+    if(added)window.LoteriaAppSave();
     return {received:rows.length,added,duplicates,invalid,errors};
   }
   function autoBackupBeforeSync(){
     const cfg=syncConfig();
     if(!cfg.autoBackup)return;
-    localStorage.setItem('loteria-pr-v4-pre-sync-backup',JSON.stringify({createdAt:new Date().toISOString(),state}));
+   localStorage.setItem('loteria-pr-v4-pre-sync-backup',JSON.stringify({createdAt:new Date().toISOString(),state:window.LoteriaAppState}));
   }
   async function testWorkerConnection(){
     const cfg=syncConfig();
@@ -1010,6 +1010,8 @@ const THEME_KEY='loteria-pr-theme';
   const GAME_KEYS=Object.keys(GAMES);
   const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['prediccion','◉','Predicción V4.2'],['senal','⚡','Señales V4.4'],['ranking','🏆','Ranking diario'],['laboratorio','🧠','Laboratorio V5'],['nube','☁','Nube V5'],['instalar','⬇','Instalar App'],['datos','⇄','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
   let state=load();
+window.LoteriaAppState=state;
+window.LoteriaAppSave=()=>save();
   let currentView='resumen';
   let currentGame='pega3_dia';
 
