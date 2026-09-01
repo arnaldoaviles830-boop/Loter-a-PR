@@ -591,12 +591,12 @@ const THEME_KEY='loteria-pr-theme';
     };
     const rawGame=String(item?.game||item?.juego||'').trim().toLowerCase();
     const game=gameAliases[rawGame]||rawGame;
-    if(!GAMES[game])return {ok:false,error:`Juego no reconocido: ${rawGame||'vacío'}`};
+   if(!window.LoteriaGames[game])return {ok:false,error:`Juego no reconocido: ${rawGame||'vacío'}`};
     const date=String(item?.date||item?.fecha||'').slice(0,10);
     const numbers=Array.isArray(item?.numbers)?item.numbers.map(Number):parseNums(String(item?.numbers||item?.numeros||item?.resultado||''));
     const rawBonus=item?.bonus??item?.adicional??item?.powerball??null;
     const bonus=rawBonus===''||rawBonus==null?null:Number(rawBonus);
-    const error=validate(GAMES[game],numbers,bonus);
+  const error=validate(window.LoteriaGames[game],numbers,bonus);
     if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date))return {ok:false,error:'Fecha inválida'};
     if(error)return {ok:false,error};
     return {ok:true,value:{game,date,numbers,bonus,source:item?.source||item?.fuente||'worker'}};
@@ -1007,7 +1007,7 @@ const THEME_KEY='loteria-pr-theme';
     revancha:{label:'Revancha',short:'REV',type:'balls',count:5,min:1,max:40,bonusLabel:'Bolo Cash',bonusMax:4},
     powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
   };
-  const GAME_KEYS=Object.keys(GAMES);
+  const GAME_KEYS=Object.keys(GAMES);window.LoteriaGames=GAMES;
   const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['prediccion','◉','Predicción V4.2'],['senal','⚡','Señales V4.4'],['ranking','🏆','Ranking diario'],['laboratorio','🧠','Laboratorio V5'],['nube','☁','Nube V5'],['instalar','⬇','Instalar App'],['datos','⇄','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
   let state=load();
 window.LoteriaAppState=state;
@@ -1039,6 +1039,7 @@ window.LoteriaAppSave=()=>save();
 
   function parseNums(s){return (s.match(/\d+/g)||[]).map(Number)}
   function validate(cfg,nums,bonus){if(nums.length!==cfg.count)return `Debes ingresar exactamente ${cfg.count} números.`;if(nums.some(n=>n<cfg.min||n>cfg.max))return `Cada número debe estar entre ${cfg.min} y ${cfg.max}.`;if(cfg.type==='balls'&&new Set(nums).size!==nums.length)return 'Los números principales no deben repetirse.';if(cfg.bonusMax&&bonus!=null&&(bonus<1||bonus>cfg.bonusMax))return `El adicional debe estar entre 1 y ${cfg.bonusMax}.`;return ''}
+  window.LoteriaValidate=validate;
   function parseBlock(text){const out=[];let date=today();const map={'PEGA3-DIA':'pega3_dia','PEGA3-NOCHE':'pega3_noche','PEGA4-DIA':'pega4_dia','PEGA4-NOCHE':'pega4_noche','LOTO':'loto','REVANCHA':'revancha','POWERBALL':'powerball'};text.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(line=>{const i=line.indexOf(':');if(i<0)return;const key=line.slice(0,i).trim().toUpperCase(),val=line.slice(i+1).trim();if(key==='FECHA'){const m=val.match(/\d{4}-\d{2}-\d{2}/);if(m)date=m[0];return}if(!map[key])return;const parts=val.split('|'),nums=parseNums(parts[0]),bonus=parts[1]?parseNums(parts[1])[0]:null;out.push({game:map[key],date,numbers:nums,bonus})});return out}
 
   function renderHistory(){const rows=[...state.draws[currentGame]].sort((a,b)=>b.date.localeCompare(a.date));return `<article class="card w12"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h3>${GAMES[currentGame].label}</h3><div class="sub">${rows.length} resultados guardados</div></div><button class="btn small" id="downloadCsv">Descargar CSV</button></div>${rows.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Resultado</th><th>Adicional</th><th></th></tr></thead><tbody>${rows.map(d=>`<tr><td>${esc(d.date)}</td><td><div class="number-row" style="margin:0">${d.numbers.map(n=>`<span class="ball small">${n}</span>`).join('')}</div></td><td>${d.bonus??'—'}</td><td><button class="btn small danger" data-delete="${esc(d.id)}">Eliminar</button></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">No hay resultados en este juego.</div>`}</article>`}
