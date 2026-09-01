@@ -655,6 +655,7 @@ const THEME_KEY='loteria-pr-theme';
     }finally{
       syncBusy=false;
       if(currentView==='datos')render();
+      }
     }
   function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
   function renderDataCenter(){
