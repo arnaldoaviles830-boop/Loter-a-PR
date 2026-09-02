@@ -643,7 +643,7 @@ const error=window.LoteriaValidate(window.LoteriaGames[game],numbers,bonus);
       const payload=await window.LoteriaSync.fetchResults();
       const summary=importRemoteResults(payload);
       const now=new Date().toISOString();
-      setSyncMeta({status:'connected',lastSyncAt:now,lastResult:summary});
+      setSyncMeta({status:'connected',lastSyncAt:now,lastResult:summary,lastError:''});
       const message=summary.added?`${summary.added} resultado(s) nuevo(s)`:'Sin resultados nuevos';
       addSyncLog('ok',message,`${summary.duplicates} duplicados · ${summary.invalid} inválidos`);
      console.log(message);
