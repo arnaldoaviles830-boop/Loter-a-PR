@@ -593,10 +593,10 @@ const THEME_KEY='loteria-pr-theme';
     const game=gameAliases[rawGame]||rawGame;
    if(!window.LoteriaGames[game])return {ok:false,error:`Juego no reconocido: ${rawGame||'vacío'}`};
     const date=String(item?.date||item?.fecha||'').slice(0,10);
-    const numbers=Array.isArray(item?.numbers)?item.numbers.map(Number):parseNums(String(item?.numbers||item?.numeros||item?.resultado||''));
+    const numbers=Array.isArray(item?.numbers)?item.numbers.map(Number):window.LoteriaParseNums(String(item?.numbers||item?.numeros||item?.resultado||''));
     const rawBonus=item?.bonus??item?.adicional??item?.powerball??null;
     const bonus=rawBonus===''||rawBonus==null?null:Number(rawBonus);
-  const error=validate(window.LoteriaGames[game],numbers,bonus);
+const error=window.LoteriaValidate(window.LoteriaGames[game],numbers,bonus);
     if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date))return {ok:false,error:'Fecha inválida'};
     if(error)return {ok:false,error};
     return {ok:true,value:{game,date,numbers,bonus,source:item?.source||item?.fuente||'worker'}};
@@ -1038,6 +1038,7 @@ window.LoteriaAppSave=()=>save();
   <article class="card w6"><h3>Pegar bloque de resultados</h3><div class="sub">Formato compatible con varios juegos a la vez.</div><form id="pasteForm" style="margin-top:14px"><div class="field"><textarea id="pasteInput" placeholder="FECHA: 2026-08-02\nPEGA3-DIA: 1 2 3\nPEGA4-NOCHE: 4 5 6 7\nLOTO: 3 8 12 27 39 | 2\nPOWERBALL: 4 18 26 44 61 | 11"></textarea></div><button class="btn primary" style="margin-top:14px">Procesar bloque</button></form></article></div>`}
 
   function parseNums(s){return (s.match(/\d+/g)||[]).map(Number)}
+  window.LoteriaParseNums=parseNums;
   function validate(cfg,nums,bonus){if(nums.length!==cfg.count)return `Debes ingresar exactamente ${cfg.count} números.`;if(nums.some(n=>n<cfg.min||n>cfg.max))return `Cada número debe estar entre ${cfg.min} y ${cfg.max}.`;if(cfg.type==='balls'&&new Set(nums).size!==nums.length)return 'Los números principales no deben repetirse.';if(cfg.bonusMax&&bonus!=null&&(bonus<1||bonus>cfg.bonusMax))return `El adicional debe estar entre 1 y ${cfg.bonusMax}.`;return ''}
   window.LoteriaValidate=validate;
   function parseBlock(text){const out=[];let date=today();const map={'PEGA3-DIA':'pega3_dia','PEGA3-NOCHE':'pega3_noche','PEGA4-DIA':'pega4_dia','PEGA4-NOCHE':'pega4_noche','LOTO':'loto','REVANCHA':'revancha','POWERBALL':'powerball'};text.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(line=>{const i=line.indexOf(':');if(i<0)return;const key=line.slice(0,i).trim().toUpperCase(),val=line.slice(i+1).trim();if(key==='FECHA'){const m=val.match(/\d{4}-\d{2}-\d{2}/);if(m)date=m[0];return}if(!map[key])return;const parts=val.split('|'),nums=parseNums(parts[0]),bonus=parts[1]?parseNums(parts[1])[0]:null;out.push({game:map[key],date,numbers:nums,bonus})});return out}
