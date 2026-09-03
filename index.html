@@ -477,12 +477,37 @@
       throw error;
     }
   }
+async function fetchHistory(gameId, from, to) {
+  return request(
+    `/api/history?gameId=${encodeURIComponent(gameId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+  );
+}
+  async function fetchAllHistory(from, to) {
+  const gameIds = [3, 4, 6, 7, 8, 9, 10];
 
+  const responses = await Promise.all(
+    gameIds.map(gameId =>
+      fetchHistory(gameId, from, to)
+    )
+  );
+
+  return {
+    ok: true,
+    results: responses.flatMap(
+      response =>
+        Array.isArray(response?.results)
+          ? response.results
+          : []
+    )
+  };
+}
   window.LoteriaSync = {
     getLog,
     addLog,
     health,
-    fetchResults
+    fetchResults,
+    fetchHistory,
+    fetchAllHistory
   };
 })();
 
@@ -640,7 +665,7 @@ const error=window.LoteriaValidate(window.LoteriaGames[game],numbers,bonus);
     setSyncMeta({status:'syncing'});
     try{
       autoBackupBeforeSync();
-      const payload=await window.LoteriaSync.fetchResults();
+      const payload=await window.LoteriaSync.fetchAllHistory("2026-08-01","2026-08-31");
       const summary=importRemoteResults(payload);
       const now=new Date().toISOString();
       setSyncMeta({status:'connected',lastSyncAt:now,lastResult:summary,lastError:''});
