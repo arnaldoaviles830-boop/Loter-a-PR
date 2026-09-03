@@ -665,10 +665,14 @@ const error=window.LoteriaValidate(window.LoteriaGames[game],numbers,bonus);
     setSyncMeta({status:'syncing'});
     try{
       autoBackupBeforeSync();
-      const payload=await window.LoteriaSync.fetchAllHistory("2026-08-01","2026-08-31");
+      const to=new Date().toISOString().slice(0,10);
+const historyReady=localStorage.getItem('loteria-pr-history-v1-complete')==='true';
+const from=historyReady?new Date(Date.now()-7*86400000).toISOString().slice(0,10):'2025-01-01';
+const payload=await window.LoteriaSync.fetchAllHistory(from,to);
       const summary=importRemoteResults(payload);
       const now=new Date().toISOString();
       setSyncMeta({status:'connected',lastSyncAt:now,lastResult:summary,lastError:''});
+      localStorage.setItem('loteria-pr-history-v1-complete','true');
       const message=summary.added?`${summary.added} resultado(s) nuevo(s)`:'Sin resultados nuevos';
       addSyncLog('ok',message,`${summary.duplicates} duplicados · ${summary.invalid} inválidos`);
      console.log(message);
@@ -1447,12 +1451,21 @@ window.LoteriaAppSave=()=>save();
   window.addEventListener('offline',()=>{if(currentView==='instalar')render()});
   registerServiceWorker();
   initNav();render();
-  setTimeout(async()=>{
-    const cfg=syncConfig(),meta=syncMeta();
-    if(!cfg.autoSync||!cfg.workerUrl)return;
-    const elapsed=Date.now()-new Date(meta.lastSyncAt||0).getTime();
-    if(elapsed>=cfg.syncIntervalMinutes*60000)await runDataSync();
-  },1200);
+ async function checkAutoSync(){
+  const cfg=syncConfig(),meta=syncMeta();
+
+  if(!cfg.autoSync||!cfg.workerUrl)return;
+
+  const elapsed=
+    Date.now()-new Date(meta.lastSyncAt||0).getTime();
+
+  if(elapsed>=cfg.syncIntervalMinutes*60000){
+    await runDataSync();
+  }
+}
+
+setTimeout(checkAutoSync,1200);
+setInterval(checkAutoSync,60000);
 })();
 
 </script>
