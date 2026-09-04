@@ -1585,6 +1585,165 @@ window.LoteriaAppSave=()=>save();
 
   </div>`;
 }
+  function renderPerformance(){
+  const cfg=GAMES[currentGame];
+  const rows=drawsWindow();
+
+  if(rows.length<12){
+    return `<div class="grid">
+      <article class="card w12">
+        <div class="empty">Se necesitan al menos 12 sorteos para evaluar rendimiento histórico.</div>
+      </article>
+    </div>`;
+  }
+
+  const modes=[
+    {id:'hot',label:'Calientes'},
+    {id:'cold',label:'Fríos'},
+    {id:'balanced',label:'Balanceado'},
+    {id:'random',label:'Referencia neutral'}
+  ];
+
+  const results=modes.map(m=>{
+    const r=runBacktest(m.id,10);
+
+    const distribution={};
+    for(let i=0;i<=cfg.count;i++)distribution[i]=0;
+
+    r.results.forEach(x=>{
+      distribution[x.hits]=(distribution[x.hits]||0)+1;
+    });
+
+    const hitRate=r.results.length
+      ? r.results.filter(x=>x.hits>0).length/r.results.length*100
+      : 0;
+
+    const consistency=r.results.length
+      ? Math.max(0,100-
+          (
+            r.results.reduce(
+              (a,x)=>a+Math.pow(x.hits-r.avg,2),
+              0
+            )/r.results.length
+          )*20
+        )
+      : 0;
+
+    return {
+      ...m,
+      ...r,
+      distribution,
+      hitRate,
+      consistency
+    };
+  });
+
+  const ranked=[...results].sort((a,b)=>
+    b.avg-a.avg ||
+    b.best-a.best ||
+    b.hitRate-a.hitRate
+  );
+
+  const best=ranked[0];
+
+  return `<div class="grid">
+
+    <article class="card w12">
+      <h3>Panel de rendimiento</h3>
+      <div class="sub">
+        ${cfg.label} · ${rows.length} sorteos cargados · ventana retrospectiva de 10 sorteos
+      </div>
+
+      <div class="insight-grid" style="margin-top:14px">
+        <div class="insight">
+          <span class="sub">Mejor estrategia histórica</span>
+          <strong>${best?.label??'—'}</strong>
+        </div>
+
+        <div class="insight">
+          <span class="sub">Promedio de aciertos</span>
+          <strong>${best?best.avg.toFixed(2):'0.00'}</strong>
+        </div>
+
+        <div class="insight">
+          <span class="sub">Mejor resultado</span>
+          <strong>${best?.best??0}</strong>
+        </div>
+
+        <div class="insight">
+          <span class="sub">Evaluaciones</span>
+          <strong>${best?.results.length??0}</strong>
+        </div>
+      </div>
+    </article>
+
+    <article class="card w12">
+      <h3>Comparación de estrategias</h3>
+
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr>
+              <th>Estrategia</th>
+              <th>Promedio</th>
+              <th>Mejor</th>
+              <th>Exactos</th>
+              <th>Con ≥1 acierto</th>
+              <th>Consistencia</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${ranked.map(r=>`
+              <tr>
+                <td><b>${r.label}</b></td>
+                <td>${r.avg.toFixed(2)}</td>
+                <td>${r.best}</td>
+                <td>${r.exact}</td>
+                <td>${r.hitRate.toFixed(1)}%</td>
+                <td>${r.consistency.toFixed(0)}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="card w12">
+      <h3>Distribución de aciertos</h3>
+
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr>
+              <th>Estrategia</th>
+              ${Array.from({length:cfg.count+1},(_,i)=>`<th>${i} ac.</th>`).join('')}
+            </tr>
+          </thead>
+
+          <tbody>
+            ${ranked.map(r=>`
+              <tr>
+                <td><b>${r.label}</b></td>
+                ${Array.from({length:cfg.count+1},(_,i)=>`
+                  <td>${r.distribution[i]||0}</td>
+                `).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="card w12">
+      <div class="notice warn">
+        Este panel mide cómo se comportaron reglas simples sobre el historial cargado.
+        Un mejor rendimiento retrospectivo no garantiza mejores resultados futuros.
+      </div>
+    </article>
+
+  </div>`;
+}
   function renderGenerator(){
     return `<div class="grid"><article class="card w5"><h3>Generador Pro 3.1</h3><form id="generatorForm" style="margin-top:14px"><div class="field"><label>Perfil de análisis</label><select id="modeInput"><option value="conservative">Conservador</option><option value="balanced" selected>Balanceado</option><option value="aggressive">Agresivo</option><option value="hot">Tendencia caliente</option><option value="cold">Atrasados/fríos</option><option value="mixed">Mixto diversificado</option></select></div><div class="field" style="margin-top:12px"><label>Cantidad</label><select id="countInput"><option>3</option><option selected>5</option><option>10</option></select></div><button class="btn primary" style="margin-top:14px">Analizar y generar</button></form><div class="notice warn"><b>La puntuación es interna.</b> No representa la probabilidad real de premio ni una predicción garantizada.</div></article><article class="card w7"><h3>Combinaciones explicadas</h3><div class="sub">Ordenadas por afinidad con el perfil seleccionado.</div><div id="generatorOutput" class="generator-output"><div class="empty">Selecciona un perfil para comenzar.</div></div></article></div>`;
   }
@@ -1780,7 +1939,7 @@ window.LoteriaAppSave=()=>save();
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderSummary,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderSummary,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderSummary,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
