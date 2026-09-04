@@ -1357,6 +1357,80 @@ window.LoteriaAppSave=()=>save();
 
   </div>`;
 }
+  function renderCorrelations(){
+  const rows=drawsWindow();
+  const cfg=GAMES[currentGame];
+
+  if(!rows.length){
+    return `<div class="grid"><article class="card w12"><div class="empty">No hay sorteos suficientes para analizar correlaciones.</div></article></div>`;
+  }
+
+  const pairMap={};
+
+  rows.forEach(draw=>{
+    const nums=[...draw.numbers].sort((a,b)=>a-b);
+
+    for(let i=0;i<nums.length-1;i++){
+      for(let j=i+1;j<nums.length;j++){
+        const key=`${nums[i]}-${nums[j]}`;
+        pairMap[key]=(pairMap[key]||0)+1;
+      }
+    }
+  });
+
+  const pairs=Object.entries(pairMap)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,25);
+
+  const maxCount=pairs.length?pairs[0][1]:1;
+
+  return `<div class="grid">
+
+    <article class="card w12">
+      <h3>Correlaciones históricas</h3>
+      <div class="sub">${rows.length} sorteos analizados · ${cfg.label}</div>
+      <div class="notice warn" style="margin-top:14px">
+        Una correlación indica que dos números aparecieron juntos dentro del historial cargado. No implica dependencia ni aumenta la probabilidad matemática del próximo sorteo.
+      </div>
+    </article>
+
+    <article class="card w12">
+      <h3>Parejas con mayor coaparición</h3>
+      <div class="sub">Ordenadas por cantidad de sorteos en los que aparecieron juntas.</div>
+
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr>
+              <th>Pareja</th>
+              <th>Coincidencias</th>
+              <th>% de sorteos</th>
+              <th>Intensidad relativa</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              pairs.map(([key,count])=>{
+                const pct=(count/rows.length*100).toFixed(1);
+                const intensity=Math.round(count/maxCount*100);
+
+                return `
+                  <tr>
+                    <td><b>${key}</b></td>
+                    <td>${count}</td>
+                    <td>${pct}%</td>
+                    <td>${intensity}%</td>
+                  </tr>
+                `;
+              }).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+  </div>`;
+}
   function renderGenerator(){
     return `<div class="grid"><article class="card w5"><h3>Generador Pro 3.1</h3><form id="generatorForm" style="margin-top:14px"><div class="field"><label>Perfil de análisis</label><select id="modeInput"><option value="conservative">Conservador</option><option value="balanced" selected>Balanceado</option><option value="aggressive">Agresivo</option><option value="hot">Tendencia caliente</option><option value="cold">Atrasados/fríos</option><option value="mixed">Mixto diversificado</option></select></div><div class="field" style="margin-top:12px"><label>Cantidad</label><select id="countInput"><option>3</option><option selected>5</option><option>10</option></select></div><button class="btn primary" style="margin-top:14px">Analizar y generar</button></form><div class="notice warn"><b>La puntuación es interna.</b> No representa la probabilidad real de premio ni una predicción garantizada.</div></article><article class="card w7"><h3>Combinaciones explicadas</h3><div class="sub">Ordenadas por afinidad con el perfil seleccionado.</div><div id="generatorOutput" class="generator-output"><div class="empty">Selecciona un perfil para comenzar.</div></div></article></div>`;
   }
@@ -1552,7 +1626,7 @@ window.LoteriaAppSave=()=>save();
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderTrends,top100:renderSummary,comparar:renderCompare,rendimiento:renderSummary,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderSummary,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderSummary,comparar:renderCompare,rendimiento:renderSummary,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderSummary,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
