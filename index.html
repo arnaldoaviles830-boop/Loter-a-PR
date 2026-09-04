@@ -1431,6 +1431,160 @@ window.LoteriaAppSave=()=>save();
 
   </div>`;
 }
+  function renderTop100(){
+  const cfg=GAMES[currentGame];
+  const history=drawsWindow();
+
+  if(!history.length){
+    return `<div class="grid">
+      <article class="card w12">
+        <div class="empty">No hay historial suficiente para generar el Top 100.</div>
+      </article>
+    </div>`;
+  }
+
+  const modes=['balanced','hot','cold','mixed','conservative','aggressive'];
+  const candidates=[];
+
+  modes.forEach(mode=>{
+    proGenerate(mode,30).forEach(c=>{
+      const key=`${c.numbers.join('-')}|${c.bonus??''}`;
+
+      if(!candidates.some(x=>x.key===key)){
+        candidates.push({
+          ...c,
+          key,
+          profile:mode
+        });
+      }
+    });
+  });
+
+  candidates.sort((a,b)=>
+    b.factors.score-a.factors.score ||
+    b.factors.balance-a.factors.balance ||
+    b.factors.trend-a.factors.trend
+  );
+
+  const top=candidates.slice(0,100);
+
+  const profileLabel={
+    balanced:'Balanceado',
+    hot:'Caliente',
+    cold:'Atrasados',
+    mixed:'Mixto',
+    conservative:'Conservador',
+    aggressive:'Agresivo'
+  };
+
+  const level=score=>{
+    if(score>=80)return 'Alta';
+    if(score>=65)return 'Media-alta';
+    if(score>=50)return 'Media';
+    return 'Exploratoria';
+  };
+
+  const avg=top.length
+    ? Math.round(top.reduce((a,c)=>a+c.factors.score,0)/top.length)
+    : 0;
+
+  return `<div class="grid">
+
+    <article class="card w12">
+      <h3>Top 100 combinaciones</h3>
+      <div class="sub">
+        ${cfg.label} · ${history.length} sorteos históricos analizados
+      </div>
+
+      <div class="insight-grid" style="margin-top:14px">
+        <div class="insight">
+          <span class="sub">Combinaciones clasificadas</span>
+          <strong>${top.length}</strong>
+        </div>
+
+        <div class="insight">
+          <span class="sub">Puntuación promedio</span>
+          <strong>${avg}</strong>
+        </div>
+
+        <div class="insight">
+          <span class="sub">Mejor puntuación</span>
+          <strong>${top[0]?.factors.score??0}</strong>
+        </div>
+
+        <div class="insight">
+          <span class="sub">Perfiles utilizados</span>
+          <strong>${modes.length}</strong>
+        </div>
+      </div>
+    </article>
+
+    <article class="card w12">
+      <h3>Ranking estadístico</h3>
+      <div class="sub">
+        Ordenado por puntuación interna, balance y tendencia.
+      </div>
+
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Combinación</th>
+              <th>Perfil</th>
+              <th>Score</th>
+              <th>Frecuencia</th>
+              <th>Tendencia</th>
+              <th>Atraso</th>
+              <th>Balance</th>
+              <th>Clasificación</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${top.map((c,i)=>`
+              <tr>
+                <td><b>${i+1}</b></td>
+
+                <td>
+                  ${renderBalls(c.numbers,'small')}
+                  ${c.bonus!=null
+                    ? `<span style="margin-left:5px">+</span>
+                       <span class="ball small red">${c.bonus}</span>`
+                    : ''
+                  }
+                </td>
+
+                <td>${profileLabel[c.profile]||c.profile}</td>
+
+                <td><b>${c.factors.score}</b></td>
+
+                <td>${c.factors.frequency}</td>
+
+                <td>${c.factors.trend}</td>
+
+                <td>${c.factors.delay}</td>
+
+                <td>${c.factors.balance}</td>
+
+                <td>${level(c.factors.score)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="card w12">
+      <div class="notice warn">
+        El ranking utiliza afinidad estadística con el historial cargado.
+        La puntuación no representa la probabilidad real de ganar y ninguna
+        combinación tiene garantía de aparecer en el próximo sorteo.
+      </div>
+    </article>
+
+  </div>`;
+}
   function renderGenerator(){
     return `<div class="grid"><article class="card w5"><h3>Generador Pro 3.1</h3><form id="generatorForm" style="margin-top:14px"><div class="field"><label>Perfil de análisis</label><select id="modeInput"><option value="conservative">Conservador</option><option value="balanced" selected>Balanceado</option><option value="aggressive">Agresivo</option><option value="hot">Tendencia caliente</option><option value="cold">Atrasados/fríos</option><option value="mixed">Mixto diversificado</option></select></div><div class="field" style="margin-top:12px"><label>Cantidad</label><select id="countInput"><option>3</option><option selected>5</option><option>10</option></select></div><button class="btn primary" style="margin-top:14px">Analizar y generar</button></form><div class="notice warn"><b>La puntuación es interna.</b> No representa la probabilidad real de premio ni una predicción garantizada.</div></article><article class="card w7"><h3>Combinaciones explicadas</h3><div class="sub">Ordenadas por afinidad con el perfil seleccionado.</div><div id="generatorOutput" class="generator-output"><div class="empty">Selecciona un perfil para comenzar.</div></div></article></div>`;
   }
@@ -1626,7 +1780,7 @@ window.LoteriaAppSave=()=>save();
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderSummary,comparar:renderCompare,rendimiento:renderSummary,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderSummary,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderSummary,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderSummary,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
