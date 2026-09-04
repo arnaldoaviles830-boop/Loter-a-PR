@@ -1142,7 +1142,9 @@ window.LoteriaAppSave=()=>save();
   }
   function runBacktest(mode,train=10){
     const rows=drawsWindow(0,currentGame),cfg=GAMES[currentGame],results=[];let totalHits=0,exact=0,best=0;
-    for(let i=train;i<rows.length;i++){const history=rows.slice(Math.max(0,i-train),i),combo=strategyCombo(history,mode),actual=rows[i].numbers;if(!combo)continue;const hits=actual.filter(n=>combo.includes(n)).length;totalHits+=hits;best=Math.max(best,hits);if(hits===cfg.count)exact++;results.push({date:rows[i].date,combo,actual,hits})}
+    for(let i=train;i<rows.length;i++){const history=rows.slice(Math.max(0,i-train),i),combo=strategyCombo(history,mode),actual=rows[i].numbers;if(!combo)continue;const hits=cfg.type==='balls'
+  ? actual.filter(n=>combo.includes(n)).length
+  : actual.reduce((total,n,i)=>total+(n===combo[i]?1:0),0);totalHits+=hits;best=Math.max(best,hits);if(hits===cfg.count)exact++;results.push({date:rows[i].date,combo,actual,hits})}
     return {results,totalHits,avg:results.length?totalHits/results.length:0,exact,best};
   }
   function renderSimulator(){
