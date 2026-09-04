@@ -1231,6 +1231,132 @@ window.LoteriaAppSave=()=>save();
       <article class="card w12"><div class="notice warn"><b>Importante:</b> una señal describe cambios dentro del historial cargado. No aumenta la probabilidad matemática real de un número en el próximo sorteo.</div></article>
     </div>`;
   }
+  function renderPatterns(){
+  const rows=drawsWindow();
+  const cfg=GAMES[currentGame];
+
+  if(!rows.length){
+    return `<div class="grid"><article class="card w12"><div class="empty">No hay sorteos suficientes para analizar patrones.</div></article></div>`;
+  }
+
+  const pairMap={};
+  const tripleMap={};
+  let consecutive=0;
+  let repeated=0;
+  let even=0;
+  let odd=0;
+
+  rows.forEach((draw,index)=>{
+    const nums=[...draw.numbers].sort((a,b)=>a-b);
+
+    nums.forEach(n=>n%2?odd++:even++);
+
+    for(let i=0;i<nums.length-1;i++){
+      if(nums[i+1]-nums[i]===1)consecutive++;
+
+      for(let j=i+1;j<nums.length;j++){
+        const key=`${nums[i]}-${nums[j]}`;
+        pairMap[key]=(pairMap[key]||0)+1;
+      }
+    }
+
+    if(nums.length>=3){
+      for(let i=0;i<nums.length-2;i++){
+        for(let j=i+1;j<nums.length-1;j++){
+          for(let k=j+1;k<nums.length;k++){
+            const key=`${nums[i]}-${nums[j]}-${nums[k]}`;
+            tripleMap[key]=(tripleMap[key]||0)+1;
+          }
+        }
+      }
+    }
+
+    if(index>0){
+      const prev=rows[index-1].numbers;
+      repeated+=nums.filter(n=>prev.includes(n)).length;
+    }
+  });
+
+  const pairs=Object.entries(pairMap)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,10);
+
+  const triples=Object.entries(tripleMap)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,10);
+
+  const totalNums=even+odd||1;
+  const evenPct=Math.round(even/totalNums*100);
+  const oddPct=100-evenPct;
+
+  return `<div class="grid">
+
+    <article class="card w12">
+      <h3>Resumen de patrones</h3>
+      <div class="sub">${rows.length} sorteos analizados · ${cfg.label}</div>
+
+      <div class="insight-grid" style="margin-top:14px">
+        <div class="insight">
+          <span class="sub">Pares consecutivos</span>
+          <strong>${consecutive}</strong>
+        </div>
+        <div class="insight">
+          <span class="sub">Repeticiones entre sorteos</span>
+          <strong>${repeated}</strong>
+        </div>
+        <div class="insight">
+          <span class="sub">Pares</span>
+          <strong>${evenPct}%</strong>
+        </div>
+        <div class="insight">
+          <span class="sub">Impares</span>
+          <strong>${oddPct}%</strong>
+        </div>
+      </div>
+    </article>
+
+    <article class="card w6">
+      <h3>Parejas más frecuentes</h3>
+      <div class="pattern-list">
+        ${
+          pairs.length
+            ? pairs.map(([key,count])=>`
+              <div class="pattern-row">
+                <b>${key}</b>
+                <span>${count} veces</span>
+                <span>${(count/rows.length*100).toFixed(1)}%</span>
+              </div>
+            `).join('')
+            : '<div class="empty">Sin parejas suficientes.</div>'
+        }
+      </div>
+    </article>
+
+    <article class="card w6">
+      <h3>Tríos más frecuentes</h3>
+      <div class="pattern-list">
+        ${
+          triples.length
+            ? triples.map(([key,count])=>`
+              <div class="pattern-row">
+                <b>${key}</b>
+                <span>${count} veces</span>
+                <span>${(count/rows.length*100).toFixed(1)}%</span>
+              </div>
+            `).join('')
+            : '<div class="empty">Sin tríos suficientes.</div>'
+        }
+      </div>
+    </article>
+
+    <article class="card w12">
+      <div class="notice warn">
+        Estos patrones describen coincidencias históricas. No implican que una pareja o trío tenga mayor probabilidad de aparecer en el próximo sorteo.
+      </div>
+    </article>
+
+  </div>`;
+}
   function renderGenerator(){
     return `<div class="grid"><article class="card w5"><h3>Generador Pro 3.1</h3><form id="generatorForm" style="margin-top:14px"><div class="field"><label>Perfil de análisis</label><select id="modeInput"><option value="conservative">Conservador</option><option value="balanced" selected>Balanceado</option><option value="aggressive">Agresivo</option><option value="hot">Tendencia caliente</option><option value="cold">Atrasados/fríos</option><option value="mixed">Mixto diversificado</option></select></div><div class="field" style="margin-top:12px"><label>Cantidad</label><select id="countInput"><option>3</option><option selected>5</option><option>10</option></select></div><button class="btn primary" style="margin-top:14px">Analizar y generar</button></form><div class="notice warn"><b>La puntuación es interna.</b> No representa la probabilidad real de premio ni una predicción garantizada.</div></article><article class="card w7"><h3>Combinaciones explicadas</h3><div class="sub">Ordenadas por afinidad con el perfil seleccionado.</div><div id="generatorOutput" class="generator-output"><div class="empty">Selecciona un perfil para comenzar.</div></div></article></div>`;
   }
@@ -1426,7 +1552,7 @@ window.LoteriaAppSave=()=>save();
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderTrends,correlaciones:renderTrends,top100:renderSummary,comparar:renderCompare,rendimiento:renderSummary,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderSummary,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderTrends,top100:renderSummary,comparar:renderCompare,rendimiento:renderSummary,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderSummary,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
