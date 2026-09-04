@@ -1744,6 +1744,160 @@ window.LoteriaAppSave=()=>save();
 
   </div>`;
 }
+  function renderFavorites(){
+  const favorites=(state.favorites||[]).filter(f=>f.game===currentGame);
+  const cfg=GAMES[currentGame];
+
+  if(!favorites.length){
+    return `<div class="grid">
+      <article class="card w12">
+        <h3>Favoritos inteligentes</h3>
+        <div class="empty">
+          Todavía no tienes combinaciones favoritas guardadas para ${cfg.label}.
+          Puedes guardarlas desde Generador Pro, Predicción o Ranking diario.
+        </div>
+      </article>
+    </div>`;
+  }
+
+  const rows=favorites.map(f=>{
+    const status=favoriteStatus(f);
+
+    const strategy=
+      f.mode==='hot'?'Calientes':
+      f.mode==='cold'?'Fríos':
+      f.mode==='balanced'?'Balanceado':
+      f.mode==='conservative'?'Conservador':
+      f.mode==='aggressive'?'Agresivo':
+      f.mode==='mixed'?'Mixto':
+      f.mode==='ensemble'?'Ensamble':
+      f.mode==='trend'?'Tendencia':
+      f.mode==='stable'?'Estable':
+      f.mode==='delay'?'Atrasados':
+      'Personalizada';
+
+    const score=
+      f.factors?.score ??
+      f.quality?.score ??
+      '—';
+
+    return {
+      ...f,
+      status,
+      strategy,
+      score
+    };
+  });
+
+  const evaluated=rows.filter(x=>x.status.label!=='Pendiente');
+  const best=evaluated.length
+    ? [...evaluated].sort((a,b)=>b.status.hits-a.status.hits)[0]
+    : null;
+
+  return `<div class="grid">
+
+    <article class="card w12">
+      <h3>Favoritos inteligentes</h3>
+      <div class="sub">
+        ${cfg.label} · ${favorites.length} combinación${favorites.length===1?'':'es'} guardada${favorites.length===1?'':'s'}
+      </div>
+
+      <div class="insight-grid" style="margin-top:14px">
+
+        <div class="insight">
+          <span class="sub">Favoritos</span>
+          <strong>${favorites.length}</strong>
+        </div>
+
+        <div class="insight">
+          <span class="sub">Evaluados</span>
+          <strong>${evaluated.length}</strong>
+        </div>
+
+        <div class="insight">
+          <span class="sub">Mejor coincidencia</span>
+          <strong>${best?best.status.hits:'—'}</strong>
+        </div>
+
+        <div class="insight">
+          <span class="sub">Estrategia destacada</span>
+          <strong>${best?best.strategy:'—'}</strong>
+        </div>
+
+      </div>
+    </article>
+
+    <article class="card w12">
+      <h3>Combinaciones guardadas</h3>
+
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr>
+              <th>Combinación</th>
+              <th>Estrategia</th>
+              <th>Score</th>
+              <th>Guardada</th>
+              <th>Resultado posterior</th>
+              <th>Fecha mejor resultado</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            ${rows.map(f=>`
+              <tr>
+
+                <td>
+                  <div class="number-row" style="margin:0">
+                    ${f.numbers.map(n=>`<span class="ball small">${n}</span>`).join('')}
+                    ${f.bonus!=null
+                      ? `<span class="ball small" style="background:#5b2330">${f.bonus}</span>`
+                      : ''
+                    }
+                  </div>
+                </td>
+
+                <td>${f.strategy}</td>
+
+                <td><b>${f.score}</b></td>
+
+                <td>${esc((f.created||'').slice(0,10)||'—')}</td>
+
+                <td>
+                  <span class="${f.status.cls}">
+                    ${esc(f.status.label)}
+                  </span>
+                </td>
+
+                <td>${esc(f.status.date||'—')}</td>
+
+                <td>
+                  <button class="btn small danger"
+                    data-unfavorite="${esc(f.id)}">
+                    Eliminar
+                  </button>
+                </td>
+
+              </tr>
+            `).join('')}
+
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="card w12">
+      <div class="notice warn">
+        Las coincidencias se calculan únicamente contra sorteos posteriores
+        a la fecha en que se guardó cada combinación. Los resultados históricos
+        no garantizan aciertos futuros.
+      </div>
+    </article>
+
+  </div>`;
+}
   function renderGenerator(){
     return `<div class="grid"><article class="card w5"><h3>Generador Pro 3.1</h3><form id="generatorForm" style="margin-top:14px"><div class="field"><label>Perfil de análisis</label><select id="modeInput"><option value="conservative">Conservador</option><option value="balanced" selected>Balanceado</option><option value="aggressive">Agresivo</option><option value="hot">Tendencia caliente</option><option value="cold">Atrasados/fríos</option><option value="mixed">Mixto diversificado</option></select></div><div class="field" style="margin-top:12px"><label>Cantidad</label><select id="countInput"><option>3</option><option selected>5</option><option>10</option></select></div><button class="btn primary" style="margin-top:14px">Analizar y generar</button></form><div class="notice warn"><b>La puntuación es interna.</b> No representa la probabilidad real de premio ni una predicción garantizada.</div></article><article class="card w7"><h3>Combinaciones explicadas</h3><div class="sub">Ordenadas por afinidad con el perfil seleccionado.</div><div id="generatorOutput" class="generator-output"><div class="empty">Selecciona un perfil para comenzar.</div></div></article></div>`;
   }
@@ -1939,7 +2093,7 @@ window.LoteriaAppSave=()=>save();
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderSummary,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
