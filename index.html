@@ -1136,7 +1136,7 @@ function renderBoloLoto(){
   const game=(currentGame==='revancha')?'revancha':'loto';
   const bonus=Number(localStorage.getItem('bolo-loto-selected')||1);
   const stats=boloLotoColumnStats(game,bonus);
-
+const recommendations=generateBoloLotoRecommendations(stats,bonus,5);
   return `
     <div class="grid">
 
@@ -1197,9 +1197,24 @@ function renderBoloLoto(){
   </div>
 
   <div id="boloLotoRecommendations" class="generator-output" style="margin-top:14px">
-    <div class="empty">
-      Generador pendiente de activar.
-    </div>
+    ${
+  recommendations.length
+  ? recommendations.map((r,i)=>`
+      <div class="combo">
+        <div class="combo-left">
+          <span class="pill">#${i+1}</span>
+          ${r.numbers.map(n=>`<span class="ball">${n}</span>`).join('')}
+          <span>+</span>
+          <span class="ball red">${r.bonus}</span>
+        </div>
+
+        <div>
+          <b>Score histórico ${r.score}</b>
+        </div>
+      </div>
+    `).join('')
+  : '<div class="empty">No hay suficientes datos históricos para generar recomendaciones.</div>'
+}
   </div>
 </article>
     </div>
