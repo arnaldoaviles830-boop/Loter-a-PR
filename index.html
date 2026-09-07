@@ -24,6 +24,20 @@
     @media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{display:none}.mobile-nav{display:flex;overflow:auto;gap:8px;margin-bottom:15px;padding-bottom:4px}.mobile-nav button{white-space:nowrap}.card{grid-column:span 6}.card.w8{grid-column:span 12}}
     @media(max-width:680px){.app{padding:10px 10px 95px}.top{align-items:flex-start}.top-actions{justify-content:flex-end}.top-actions .btn span{display:none}.hero{padding:17px;display:block}.grid{gap:12px}.card,.card.w6,.card.w8{grid-column:span 12}.form-grid{grid-template-columns:1fr}.combo{align-items:flex-start;flex-direction:column}.mobile-dock{position:fixed;z-index:30;bottom:0;left:0;right:0;background:rgba(5,15,27,.95);backdrop-filter:blur(16px);border-top:1px solid var(--line);display:grid!important;grid-template-columns:repeat(5,1fr);padding:7px env(safe-area-inset-right) calc(7px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}.mobile-dock button{border:0;background:transparent;color:var(--muted);font-size:.68rem;padding:7px 2px}.mobile-dock button.active{color:var(--cyan)}}
 
+    .daily-pick .ball{
+  background:linear-gradient(145deg,#ffffff,#d7dee8);
+  color:#0b1726;
+  border:1px solid #ffffff;
+  box-shadow:inset -3px -4px 8px rgba(0,0,0,.12),0 6px 18px rgba(0,0,0,.28);
+}
+
+.daily-pick .ball.red{
+  background:linear-gradient(145deg,#ffcf70,#ff4d2e);
+  color:#ffffff;
+  border:1px solid #ffb347;
+  box-shadow:0 0 14px rgba(255,92,46,.55),0 6px 18px rgba(0,0,0,.28);
+}
+
     .kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
     .kpi{padding:14px;border-radius:14px;background:#081522;border:1px solid var(--line)}
     .kpi strong{display:block;font-size:1.45rem;margin-top:5px}
