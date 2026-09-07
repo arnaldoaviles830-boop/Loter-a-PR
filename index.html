@@ -718,8 +718,8 @@ const payload=await window.LoteriaSync.fetchAllHistory(from,to);
     pega3_noche:{label:'Pega 3 · Noche',short:'P3N',type:'digits',count:3,min:0,max:9},
     pega4_dia:{label:'Pega 4 · Día',short:'P4D',type:'digits',count:4,min:0,max:9},
     pega4_noche:{label:'Pega 4 · Noche',short:'P4N',type:'digits',count:4,min:0,max:9},
-    loto:{label:'Loto',short:'LOTO',type:'balls',count:5,min:1,max:40,bonusLabel:'Bolo Cash',bonusMax:4},
-    revancha:{label:'Revancha',short:'REV',type:'balls',count:5,min:1,max:40,bonusLabel:'Bolo Cash',bonusMax:4},
+    loto:{label:'Loto',short:'LOTO',type:'balls',count:5,min:1,max:35,bonusLabel:'Bolo Rojo',bonusMax:10},
+revancha:{label:'Revancha',short:'REV',type:'balls',count:5,min:1,max:35,bonusLabel:'Bolo Rojo',bonusMax:10},
     powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
   };
   const GAME_KEYS=Object.keys(GAMES);window.LoteriaGames=GAMES;
