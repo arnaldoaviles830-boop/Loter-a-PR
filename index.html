@@ -2193,13 +2193,35 @@ document.addEventListener('change',e=>{
       return {game,label:cfg.label,total,activity,stability:Math.round(stability),latest,top:model.map(x=>x.n),avgScore:model.length?Math.round(model.reduce((a,b)=>a+b.score,0)/model.length):0};
     });
   }
-  function dailyRecommendation(){
-    const cfg=GAMES[currentGame],rows=drawsWindow(),model=numberModel(),mode=rows.length>=25?'balanced':rows.length>=10?'mixed':'conservative';
-    const combo=proGenerate(mode,1)[0];
-    if(!combo)return null;
-    combo.mode=mode;combo.explanation=`Perfil ${mode}: ${explainCombo(combo)}. Basado en ${rows.length} sorteos cargados.`;
-    return combo;
-  }
+function dailyRecommendation(){
+  const cfg=GAMES[currentGame];
+  const rows=drawsWindow();
+  const mode=rows.length>=25?'balanced':rows.length>=10?'mixed':'conservative';
+
+  const prDate=new Date().toLocaleDateString('en-CA',{
+    timeZone:'America/Puerto_Rico'
+  });
+
+  const lastDate=latest(currentGame)?.date||'sin-datos';
+  const cacheKey=`dashboard-rec-${currentGame}-${prDate}-${rows.length}-${lastDate}`;
+
+  try{
+    const saved=localStorage.getItem(cacheKey);
+    if(saved)return JSON.parse(saved);
+  }catch(e){}
+
+  const combo=proGenerate(mode,1)[0];
+  if(!combo)return null;
+
+  combo.mode=mode;
+  combo.explanation=`Perfil ${mode}: ${explainCombo(combo)}. Basado en ${rows.length} sorteos cargados.`;
+
+  try{
+    localStorage.setItem(cacheKey,JSON.stringify(combo));
+  }catch(e){}
+
+  return combo;
+}
   function drawSpark(canvasId,values){
     const c=document.getElementById(canvasId);if(!c||!values.length)return;const ctx=c.getContext('2d'),dpr=devicePixelRatio||1,w=c.clientWidth||240,h=c.clientHeight||52;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
     const min=Math.min(...values),max=Math.max(...values),pad=5,step=(w-pad*2)/Math.max(1,values.length-1);
