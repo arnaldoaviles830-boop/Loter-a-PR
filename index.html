@@ -762,7 +762,7 @@ revancha:{label:'Revancha',short:'REV',type:'balls',count:5,min:1,max:35,bonusLa
     powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
   };
   const GAME_KEYS=Object.keys(GAMES);window.LoteriaGames=GAMES;
-  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['prediccion','◉','Predicción V4.2'],['senal','⚡','Señales V4.4'],['ranking','🏆','Ranking diario'],['laboratorio','🧠','Laboratorio V5'],['nube','☁','Nube V5'],['instalar','⬇','Instalar App'],['datos','⇄','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
+  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['prediccion','◉','Predicción V4.2'],['senal','⚡','Señales V4.4'],['ranking','🏆','Ranking diario'],['laboratorio','🧠','Laboratorio V5'],['bololoto','🔴','Análisis Bolo Loto'],['nube','☁','Nube V5'],['instalar','⬇','Instalar App'],['datos','⇄','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
   let state=load();
 window.LoteriaAppState=state;
 window.LoteriaAppSave=()=>save();
@@ -1061,7 +1061,89 @@ function candidateSignature(numbers){
       <article class="card w7"><h3>Modelo adaptativo</h3><div class="v5-grid"><div class="v5-card"><span class="sub">Combinaciones</span><strong>${rows.length}</strong></div><div class="v5-card"><span class="sub">Mejor score</span><strong>${rows[0]?.v5.adaptiveScore||0}</strong></div><div class="v5-card"><span class="sub">Promedio</span><strong>${rows.length?(rows.reduce((a,b)=>a+b.v5.adaptiveScore,0)/rows.length).toFixed(1):0}</strong></div><div class="v5-card"><span class="sub">Juego</span><strong>${GAMES[currentGame].label}</strong></div></div></article>
       <article class="card w12"><h3>Resultados del laboratorio</h3><div class="lab-output">${rows.map((c,i)=>`<div class="lab-row ${i===0?'best':''}"><div class="rank-badge">${i+1}</div><div><div class="tiny-balls">${c.numbers.map(n=>`<span class="tiny-ball">${n}</span>`).join('')}${c.bonus!=null?`<span class="tiny-ball" style="background:#5b2330">${c.bonus}</span>`:''}</div><div class="sub">${c.v5.reasons.join(', ')}</div></div><div><b>${c.v5.adaptiveScore}</b><div class="score-band"><i style="width:${c.v5.adaptiveScore}%"></i></div></div></div>`).join('')}</div></article></div>`;
   }
+  
+function boloLotoColumnStats(game='loto',bonus=1){
+  const rows=(state.draws[game]||[]).filter(d=>Number(d.bonus)===Number(bonus));
 
+  const columns=Array.from({length:5},()=>({}));
+
+  rows.forEach(d=>{
+    if(!Array.isArray(d.numbers))return;
+
+    for(let i=0;i<5;i++){
+      const n=Number(d.numbers[i]);
+      if(!Number.isFinite(n)||n<1||n>35)continue;
+      columns[i][n]=(columns[i][n]||0)+1;
+    }
+  });
+
+  const ranked=columns.map(col=>
+    Object.entries(col)
+      .map(([n,count])=>({
+        n:Number(n),
+        count,
+        pct:rows.length?Math.round(count/rows.length*100):0
+      }))
+      .sort((a,b)=>b.count-a.count||a.n-b.n)
+      .slice(0,5)
+  );
+
+  return {rows,columns:ranked};
+}
+
+function renderBoloLoto(){
+  const game=(currentGame==='revancha')?'revancha':'loto';
+  const bonus=1;
+  const stats=boloLotoColumnStats(game,bonus);
+
+  return `
+    <div class="grid">
+
+      <article class="card w12">
+        <h3>🔴 Análisis Bolo Loto</h3>
+        <div class="sub">
+          Frecuencia histórica de cada posición cuando el bolo rojo seleccionado estuvo presente.
+        </div>
+
+        <div class="notice warn">
+          Este análisis describe coincidencias históricas y no aumenta la probabilidad matemática del próximo sorteo.
+        </div>
+      </article>
+
+      <article class="card w12">
+        <h3>Bolo rojo analizado</h3>
+
+        <div class="tiny-balls" style="margin-top:12px">
+          <span class="ball red">${bonus}</span>
+        </div>
+
+        <div class="sub" style="margin-top:10px">
+          ${stats.rows.length} sorteos encontrados · ${GAMES[game].label}
+        </div>
+      </article>
+
+      ${stats.columns.map((col,i)=>`
+        <article class="card">
+          <h3>Columna ${i+1}</h3>
+
+          <div class="number-cloud" style="margin-top:12px">
+            ${
+              col.length
+              ? col.map(x=>`
+                  <span class="signal-ball">
+                    ${x.n}
+                    <small>${x.count} · ${x.pct}%</small>
+                  </span>
+                `).join('')
+              : '<div class="empty">Sin datos para este bolo.</div>'
+            }
+          </div>
+        </article>
+      `).join('')}
+
+    </div>
+  `;
+}
   function renderCloudV5(){
     const cfg=syncConfig(),meta=syncMeta(),configured=Boolean(cfg.workerUrl),connected=meta.status==='connected',received=Boolean(meta.lastResult&&meta.lastResult.received>0);
     return `<div class="grid"><article class="card w12"><h3>Nube V5</h3><div class="sub">Estado real de la conexión. Sin fuente verificada, la aplicación no importará resultados automáticamente.</div></article>
@@ -2138,7 +2220,7 @@ function candidateSignature(numbers){
   }
   function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
+  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,bololoto:renderBoloLoto,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>state.draws[k].length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
   function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
