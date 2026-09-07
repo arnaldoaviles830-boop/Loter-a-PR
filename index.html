@@ -1205,7 +1205,12 @@ function renderBoloLoto(){
     return;
   }
 })
-
+document.addEventListener('change',e=>{
+  if(e.target && e.target.id==='boloLotoSelect'){
+    localStorage.setItem('bolo-loto-selected',e.target.value);
+    render();
+  }
+})
   function frequency(game=currentGame){const cfg=GAMES[game],freq={};for(let i=cfg.min;i<=cfg.max;i++)freq[i]=0;state.draws[game].forEach(d=>d.numbers.forEach(n=>{if(freq[n]!=null)freq[n]++}));return freq}
   function sortedFreq(dir='desc',game=currentGame){return Object.entries(frequency(game)).map(([n,c])=>({n:+n,c})).sort((a,b)=>dir==='desc'?b.c-a.c||a.n-b.n:a.c-b.c||a.n-b.n)}
   function renderBalls(nums,cls=''){return nums.map(n=>`<span class="ball ${cls}">${n}</span>`).join('')}
