@@ -707,6 +707,29 @@ const payload=await window.LoteriaSync.fetchAllHistory(from,to);
   }
 
 
+  
+  function premiumRenderHook(){requestAnimationFrame(animateCurrentView)}
+
+(() => {
+  'use strict';
+  const STORAGE='loteria-pr-v1';
+  const GAMES={
+    pega3_dia:{label:'Pega 3 · Día',short:'P3D',type:'digits',count:3,min:0,max:9},
+    pega3_noche:{label:'Pega 3 · Noche',short:'P3N',type:'digits',count:3,min:0,max:9},
+    pega4_dia:{label:'Pega 4 · Día',short:'P4D',type:'digits',count:4,min:0,max:9},
+    pega4_noche:{label:'Pega 4 · Noche',short:'P4N',type:'digits',count:4,min:0,max:9},
+    loto:{label:'Loto',short:'LOTO',type:'balls',count:5,min:1,max:40,bonusLabel:'Bolo Cash',bonusMax:4},
+    revancha:{label:'Revancha',short:'REV',type:'balls',count:5,min:1,max:40,bonusLabel:'Bolo Cash',bonusMax:4},
+    powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
+  };
+  const GAME_KEYS=Object.keys(GAMES);window.LoteriaGames=GAMES;
+  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['prediccion','◉','Predicción V4.2'],['senal','⚡','Señales V4.4'],['ranking','🏆','Ranking diario'],['laboratorio','🧠','Laboratorio V5'],['nube','☁','Nube V5'],['instalar','⬇','Instalar App'],['datos','⇄','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
+  let state=load();
+window.LoteriaAppState=state;
+window.LoteriaAppSave=()=>save();
+  let currentView='resumen';
+  let currentGame='pega3_dia';
+
   const PREDICTION_WINDOWS=[10,20,50,100];
 
   function pctRank(values,value){
@@ -1022,27 +1045,6 @@ const payload=await window.LoteriaSync.fetchAllHistory(from,to);
       el.classList.add('slide-up');
     });
   }
-  function premiumRenderHook(){requestAnimationFrame(animateCurrentView)}
-
-(() => {
-  'use strict';
-  const STORAGE='loteria-pr-v1';
-  const GAMES={
-    pega3_dia:{label:'Pega 3 · Día',short:'P3D',type:'digits',count:3,min:0,max:9},
-    pega3_noche:{label:'Pega 3 · Noche',short:'P3N',type:'digits',count:3,min:0,max:9},
-    pega4_dia:{label:'Pega 4 · Día',short:'P4D',type:'digits',count:4,min:0,max:9},
-    pega4_noche:{label:'Pega 4 · Noche',short:'P4N',type:'digits',count:4,min:0,max:9},
-    loto:{label:'Loto',short:'LOTO',type:'balls',count:5,min:1,max:40,bonusLabel:'Bolo Cash',bonusMax:4},
-    revancha:{label:'Revancha',short:'REV',type:'balls',count:5,min:1,max:40,bonusLabel:'Bolo Cash',bonusMax:4},
-    powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
-  };
-  const GAME_KEYS=Object.keys(GAMES);window.LoteriaGames=GAMES;
-  const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['prediccion','◉','Predicción V4.2'],['senal','⚡','Señales V4.4'],['ranking','🏆','Ranking diario'],['laboratorio','🧠','Laboratorio V5'],['nube','☁','Nube V5'],['instalar','⬇','Instalar App'],['datos','⇄','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
-  let state=load();
-window.LoteriaAppState=state;
-window.LoteriaAppSave=()=>save();
-  let currentView='resumen';
-  let currentGame='pega3_dia';
 
   function base(){return {draws:Object.fromEntries(GAME_KEYS.map(k=>[k,[]])),favorites:[],settings:{theme:'dark'}}}
   function load(){try{return Object.assign(base(),JSON.parse(localStorage.getItem(STORAGE)||'{}'))}catch{return base()}}
