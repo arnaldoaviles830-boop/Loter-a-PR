@@ -1093,7 +1093,7 @@ function boloLotoColumnStats(game='loto',bonus=1){
 
 function renderBoloLoto(){
   const game=(currentGame==='revancha')?'revancha':'loto';
-  const bonus=1;
+  const bonus=Number(localStorage.getItem('bolo-loto-selected')||1);
   const stats=boloLotoColumnStats(game,bonus);
 
   return `
@@ -1101,6 +1101,7 @@ function renderBoloLoto(){
 
       <article class="card w12">
         <h3>🔴 Análisis Bolo Loto</h3>
+        
         <div class="sub">
           Frecuencia histórica de cada posición cuando el bolo rojo seleccionado estuvo presente.
         </div>
@@ -1112,7 +1113,14 @@ function renderBoloLoto(){
 
       <article class="card w12">
         <h3>Bolo rojo analizado</h3>
-
+<div class="field" style="max-width:220px;margin-top:12px">
+  <label>Seleccionar bolo rojo</label>
+  <select id="boloLotoSelect">
+    ${Array.from({length:10},(_,i)=>i+1).map(n=>`
+      <option value="${n}" ${n===bonus?'selected':''}>${n}</option>
+    `).join('')}
+  </select>
+</div>
         <div class="tiny-balls" style="margin-top:12px">
           <span class="ball red">${bonus}</span>
         </div>
@@ -2117,7 +2125,16 @@ function renderBoloLoto(){
   function bind(){if(currentView==='agregar'){
       document.getElementById('manualForm').onsubmit=e=>{e.preventDefault();const cfg=GAMES[currentGame],nums=parseNums(document.getElementById('numbersInput').value),bonusEl=document.getElementById('bonusInput'),bonus=bonusEl&&bonusEl.value!==''?+bonusEl.value:null,err=validate(cfg,nums,bonus);if(err)return toast(err);state.draws[currentGame].push({id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),date:document.getElementById('dateInput').value,numbers:nums,bonus});save();toast('Resultado guardado');render()};
       document.getElementById('pasteForm').onsubmit=e=>{e.preventDefault();const entries=parseBlock(document.getElementById('pasteInput').value);let added=0;entries.forEach(x=>{const err=validate(GAMES[x.game],x.numbers,x.bonus);if(!err){state.draws[x.game].push({id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),date:x.date,numbers:x.numbers,bonus:x.bonus});added++}});save();toast(added?`${added} resultados guardados`:'No se encontró un resultado válido');render()}
-    }
+   if(currentView==='bololoto'){
+  const sel=document.getElementById('boloLotoSelect');
+  if(sel){
+    sel.onchange=()=>{
+      localStorage.setItem('bolo-loto-selected',sel.value);
+      render();
+    };
+  }
+}
+  
     if(currentView==='historial'){
       document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(confirm('¿Eliminar este resultado?')){state.draws[currentGame]=state.draws[currentGame].filter(x=>x.id!==b.dataset.delete);save();render()}});
       const csv=document.getElementById('downloadCsv');if(csv)csv.onclick=()=>downloadCSV();
