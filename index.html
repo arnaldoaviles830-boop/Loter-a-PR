@@ -834,7 +834,9 @@ window.LoteriaAppSave=()=>save();
     if(cfg.type==='balls')picked.sort((a,b)=>a-b);
     return {id:crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`,game:currentGame,numbers:picked,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toISOString(),quality:comboQuality(picked,currentGame)};
   }
-
+function candidateSignature(numbers){
+  return Array.isArray(numbers) ? numbers.join('-') : '';
+}
   function generatePredictions(mode,count,minScore,strict){
     const seen=new Set(),accepted=[],weak=[],attempts=Math.max(500,count*40);
     for(let i=0;i<attempts&&accepted.length<count;i++){
