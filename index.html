@@ -1145,7 +1145,7 @@ function generateBoloLotoRecommendations(stats,bonus,count=5){
     });
   }
 
-  return results;
+  return results.sort((a,b)=>b.score-a.score);
 }
 function renderBoloLoto(){
   const game=(currentGame==='revancha')?'revancha':'loto';
