@@ -1120,6 +1120,7 @@ function renderBoloLoto(){
       <option value="${n}" ${n===bonus?'selected':''}>${n}</option>
     `).join('')}
   </select>
+ 
 </div>
         <div class="tiny-balls" style="margin-top:12px">
           <span class="ball red">${bonus}</span>
@@ -1148,7 +1149,18 @@ function renderBoloLoto(){
           </div>
         </article>
       `).join('')}
+ <article class="card w12">
+  <h3>🎯 Recomendaciones de jugadas</h3>
+  <div class="sub">
+    Combinaciones creadas a partir de las frecuencias históricas por columna para el bolo rojo seleccionado.
+  </div>
 
+  <div id="boloLotoRecommendations" class="generator-output" style="margin-top:14px">
+    <div class="empty">
+      Generador pendiente de activar.
+    </div>
+  </div>
+</article>
     </div>
   `;
 }
