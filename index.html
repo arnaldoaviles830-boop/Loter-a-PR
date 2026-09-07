@@ -1090,7 +1090,48 @@ function boloLotoColumnStats(game='loto',bonus=1){
 
   return {rows,columns:ranked};
 }
+function generateBoloLotoRecommendations(stats,bonus,count=5){
+  if(!stats || !stats.columns || stats.columns.length<5)return [];
 
+  const results=[];
+  const used=new Set();
+
+  for(let attempt=0;attempt<100 && results.length<count;attempt++){
+    const numbers=[];
+
+    for(let col=0;col<5;col++){
+      const options=stats.columns[col] || [];
+      if(!options.length)break;
+
+      const limit=Math.min(5,options.length);
+      const pick=options[Math.floor(Math.random()*limit)];
+
+      if(pick && !numbers.includes(pick.n)){
+        numbers.push(pick.n);
+      }
+    }
+
+    if(numbers.length!==5)continue;
+
+    const signature=numbers.join('-');
+    if(used.has(signature))continue;
+
+    used.add(signature);
+
+    results.push({
+      numbers,
+      bonus,
+      score:Math.round(
+        numbers.reduce((sum,n,i)=>{
+          const item=(stats.columns[i]||[]).find(x=>x.n===n);
+          return sum+(item?.pct||0);
+        },0)/5
+      )
+    });
+  }
+
+  return results;
+}
 function renderBoloLoto(){
   const game=(currentGame==='revancha')?'revancha':'loto';
   const bonus=Number(localStorage.getItem('bolo-loto-selected')||1);
