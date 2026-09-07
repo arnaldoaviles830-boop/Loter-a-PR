@@ -1125,8 +1125,34 @@ function generateBoloLotoRecommendations(stats,bonus,count=5){
       const options=stats.columns[col] || [];
       if(!options.length)break;
 
-      const limit=Math.min(5,options.length);
-      const pick=options[Math.floor(Math.random()*limit)];
+      const limit=Math.min(attempt===0?5:3,options.length);
+let pick=null;
+
+if(attempt===0){
+  // Primera jugada: toma el número de mayor frecuencia disponible
+  pick=options.find(x=>!numbers.includes(x.n))||null;
+}else{
+  // Otras jugadas: usa principalmente los 3 números más fuertes,
+  // dando mayor peso a los que más veces han salido
+  const pool=options
+    .slice(0,limit)
+    .filter(x=>!numbers.includes(x.n));
+
+  if(pool.length){
+    const total=pool.reduce((sum,x)=>sum+Math.max(1,x.count||1),0);
+    let r=Math.random()*total;
+
+    pick=pool[pool.length-1];
+
+    for(const x of pool){
+      r-=Math.max(1,x.count||1);
+      if(r<=0){
+        pick=x;
+        break;
+      }
+    }
+  }
+}
 
       if(pick && !numbers.includes(pick.n)){
         numbers.push(pick.n);
