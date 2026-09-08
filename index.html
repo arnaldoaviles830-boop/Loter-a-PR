@@ -2303,6 +2303,7 @@ const dashboardGame=bestGame.game;
   function renderSummary(){
     const metrics=allGameMetrics(),m=metrics.find(x=>x.game===currentGame),recs=dashboardRecommendations(),rows=drawsWindow(),sums=sumBuckets(rows),cfg=GAMES[currentGame];
     const trendData=rows.slice(-14).map(d=>d.numbers.reduce((a,b)=>a+b,0));
+    const maxDashboardScore=recs.length?Math.max(...recs.map(r=>r.dashboardScore)):0;
     return `<section class="hero hero-pro"><div><span class="premium-badge"><span class="status-dot"></span> V3.5.1 ESTABLE</span><div class="section-kicker">Centro de mando</div><h2>Dashboard inteligente</h2><p>Lectura rápida del historial, señales recientes y combinación destacada del juego seleccionado.</p></div><div class="top-actions"><span class="signal-chip">● ${rows.length} sorteos analizados</span><span class="signal-chip">Juego: ${cfg.label}</span></div></section>
       ${rows.length>=25?`<div class="backup-banner" style="margin-top:14px"><div><b>Respaldo recomendado</b><div class="sub">Tienes ${rows.length} sorteos en ${cfg.label}. Guarda una copia antes de grandes cambios.</div></div><button class="btn small" id="quickBackup">Descargar respaldo</button></div>`:''}<div class="dashboard-grid" style="margin-top:14px">
         <div class="metric-card"><span class="sub">Sorteos cargados</span><strong>${rows.length}</strong><span class="signal-chip">${rows.length>=30?'Base sólida':rows.length>=10?'Base media':'Base pequeña'}</span></div>
@@ -2314,11 +2315,11 @@ const dashboardGame=bestGame.game;
   ${
     recs && recs.length
     ? recs.map((rec,i)=>`
-        <div class="recommendation" style="margin-bottom:12px;${i===0?'border:1px solid rgba(255,179,71,.75);':''}">
+        <div class="recommendation" style="margin-bottom:12px;${rec.dashboardScore===maxDashboardScore?'border:1px solid rgba(255,179,71,.75);':''}
           <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap">
             <div>
               <div class="sub">
-                ${i===0?'🏆 ':''}${esc(rec.gameLabel)} · Perfil ${esc(rec.mode)}
+                ${rec.dashboardScore===maxDashboardScore?'🏆 ':''}${esc(rec.gameLabel)} · Perfil ${esc(rec.mode)}
               </div>
 
               <div class="combo-left" style="margin-top:10px">
