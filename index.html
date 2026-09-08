@@ -2316,7 +2316,7 @@ const dashboardGame=bestGame.game;
     recs && recs.length
     ? recs.map((rec,i)=>`
         <div class="recommendation" style="margin-bottom:12px;${rec.dashboardScore===maxDashboardScore?'border:1px solid rgba(255,179,71,.75);':''}
-          <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:nowrap;width:100%">
             <div>
               <div class="sub">
                 ${rec.dashboardScore===maxDashboardScore?'🏆 ':''}${esc(rec.gameLabel)} · Perfil ${esc(rec.mode)}
