@@ -2300,7 +2300,7 @@ const dashboardGame=bestGame.game;
         <div class="metric-card"><span class="sub">Sorteos cargados</span><strong>${rows.length}</strong><span class="signal-chip">${rows.length>=30?'Base sólida':rows.length>=10?'Base media':'Base pequeña'}</span></div>
         <div class="metric-card"><span class="sub">Estabilidad de frecuencia</span><strong>${m?.stability||0}%</strong><span class="signal-chip">${(m?.stability||0)>=70?'Uniforme':'Variable'}</span></div>
         <div class="metric-card"><span class="sub">Suma promedio</span><strong>${sums.avg.toFixed(1)}</strong><span class="signal-chip">Rango ${sums.min}-${sums.max}</span></div>
-        <div class="metric-card"><span class="sub">Afinidad del modelo</span><strong>${rec?.factors?.score||0}</strong><span class="signal-chip">Índice interno</span></div>
+        <div class="metric-card"><span class="sub">Afinidad del modelo</span><strong>${recs?.[0]?.dashboardScore||0}</strong><span class="signal-chip">Índice interno</span></div>
        <article class="card w8">
   <h3>Recomendaciones destacadas</h3>
   ${
