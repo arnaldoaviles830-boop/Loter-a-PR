@@ -1470,8 +1470,8 @@ document.addEventListener('change',e=>{
     if(f.balance>=70)parts.push('distribución equilibrada');
     return parts.length?parts.join(', '):'mezcla diversificada sin un factor dominante';
   }
-  function proGenerate(mode,count=5){
-    const cfg=GAMES[currentGame],model=numberModel(),rows=[];
+  function proGenerate(mode,count=5,game=currentGame){
+    const cfg=GAMES[game],model=numberModel(game),rows=[];
     const presets={
       conservative:{frequency:.35,trend:.30,delay:.10,momentum:.15,random:.10},
       balanced:{frequency:.25,trend:.25,delay:.20,momentum:.20,random:.10},
@@ -1484,8 +1484,8 @@ document.addEventListener('change',e=>{
       const pool=model.map(x=>({n:x.n,w:1+w.frequency*x.long*6+w.trend*x.recent*7+w.delay*x.gap*6+w.momentum*x.momentum*5+Math.random()*w.random*6}));
       const nums=[];while(nums.length<cfg.count&&pool.length){let total=pool.reduce((a,x)=>a+x.w,0),r=Math.random()*total,idx=0;for(;idx<pool.length;idx++){r-=pool[idx].w;if(r<=0)break}idx=Math.min(idx,pool.length-1);const chosen=pool[idx].n;nums.push(chosen);if(cfg.type==='balls')pool.splice(idx,1)}
       if(cfg.type==='balls')nums.sort((a,b)=>a-b);
-      const c={id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),game:currentGame,numbers:nums,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toISOString()};
-      c.factors=comboFactors(nums,currentGame);c.explanation=explainCombo(c);rows.push(c);
+      const c={id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),game:game,numbers:nums,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toISOString()};
+      c.factors=comboFactors(nums,game);c.explanation=explainCombo(c);rows.push(c);
     }
     return rows.sort((a,b)=>b.factors.score-a.factors.score);
   }
@@ -2194,23 +2194,32 @@ document.addEventListener('change',e=>{
     });
   }
 function dailyRecommendation(){
-  const cfg=GAMES[currentGame];
-  const rows=drawsWindow();
+  const eligibleGames=GAME_KEYS.filter(game=>game!=='revancha');
+
+const bestGame=allGameMetrics()
+  .filter(x=>eligibleGames.includes(x.game) && x.total>0)
+  .sort((a,b)=>b.avgScore-a.avgScore)[0];
+
+if(!bestGame)return null;
+
+const dashboardGame=bestGame.game;
+  const cfg=GAMES[dashboardGame];
+  const rows=drawsWindow(0,dashboardGame);
   const mode=rows.length>=25?'balanced':rows.length>=10?'mixed':'conservative';
 
   const prDate=new Date().toLocaleDateString('en-CA',{
     timeZone:'America/Puerto_Rico'
   });
 
-  const lastDate=latest(currentGame)?.date||'sin-datos';
-  const cacheKey=`dashboard-rec-${currentGame}-${prDate}-${rows.length}-${lastDate}`;
+  const lastDate=latest(dashboardGame)?.date||'sin-datos';
+  const cacheKey=`dashboard-rec-${dashboardGame}-${prDate}-${rows.length}-${lastDate}`;
 
   try{
     const saved=localStorage.getItem(cacheKey);
     if(saved)return JSON.parse(saved);
   }catch(e){}
 
-  const combo=proGenerate(mode,1)[0];
+  const combo=proGenerate(mode,1,dashboardGame)[0];
   if(!combo)return null;
 
   combo.mode=mode;
