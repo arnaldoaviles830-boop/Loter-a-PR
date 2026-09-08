@@ -1484,7 +1484,7 @@ document.addEventListener('change',e=>{
       const pool=model.map(x=>({n:x.n,w:1+w.frequency*x.long*6+w.trend*x.recent*7+w.delay*x.gap*6+w.momentum*x.momentum*5+Math.random()*w.random*6}));
       const nums=[];while(nums.length<cfg.count&&pool.length){let total=pool.reduce((a,x)=>a+x.w,0),r=Math.random()*total,idx=0;for(;idx<pool.length;idx++){r-=pool[idx].w;if(r<=0)break}idx=Math.min(idx,pool.length-1);const chosen=pool[idx].n;nums.push(chosen);if(cfg.type==='balls')pool.splice(idx,1)}
       if(cfg.type==='balls')nums.sort((a,b)=>a-b);
-      const c={id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),game:game,numbers:nums,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toISOString()};
+      const c={id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),game:game,numbers:nums,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toLocaleString('en-CA',{timeZone:'America/Puerto_Rico',hour12:false})};
       c.factors=comboFactors(nums,game);c.explanation=explainCombo(c);rows.push(c);
     }
     return rows.sort((a,b)=>b.factors.score-a.factors.score);
