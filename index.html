@@ -893,7 +893,7 @@ window.LoteriaAppSave=()=>save();
       if(cfg.type==='balls')pool.splice(idx,1);
     }
     if(cfg.type==='balls')picked.sort((a,b)=>a-b);
-    return {id:crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`,game:currentGame,numbers:picked,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toISOString(),quality:comboQuality(picked,currentGame)};
+    return {id:crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`,game:currentGame,numbers:picked,bonus:cfg.bonusMax?randomInt(1,cfg.bonusMax):null,mode,created:new Date().toLocaleString('en-CA',{timeZone:'America/Puerto_Rico',hour12:false}),quality:comboQuality(picked,currentGame)};
   }
 function candidateSignature(numbers){
   return Array.isArray(numbers) ? numbers.join('-') : '';
