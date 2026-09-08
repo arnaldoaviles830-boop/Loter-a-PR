@@ -2410,7 +2410,7 @@ const dashboardGame=bestGame.game;
       <article class="card w5"><h3>Lectura rápida</h3><div class="notice"><b>Mayor base de datos:</b> ${best?.label||'—'} con ${best?.draws||0} sorteos.</div><div class="notice warn">Las métricas entre juegos no representan mejores probabilidades de premio; solo comparan la calidad y características de los datos cargados.</div></article></div>`;
   }
   function favoriteStatus(f){
-    const rows=drawsWindow(0,f.game||currentGame),created=(f.created||'').slice(0,10),future=rows.filter(d=>!created||d.date>=created);
+    const rows=drawsWindow(0,f.game||currentGame),created=(f.created||'').slice(0,10),future=rows.filter(d=>!created||d.date>created);
     if(!future.length)return {label:'Pendiente',cls:'status-pending',hits:0,date:''};
     let best={hits:-1,date:''};future.forEach(d=>{const hits=d.numbers.filter(n=>f.numbers.includes(n)).length;if(hits>best.hits)best={hits,date:d.date}});
     return {label:`Mejor: ${best.hits} acierto${best.hits===1?'':'s'}`,cls:best.hits>0?'status-hit':'status-miss',hits:best.hits,date:best.date};
