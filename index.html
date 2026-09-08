@@ -2231,6 +2231,61 @@ const dashboardGame=bestGame.game;
 
   return combo;
 }
+  function dashboardRecommendations(){
+  const eligibleGames=GAME_KEYS.filter(game=>game!=='revancha');
+
+  const metrics=allGameMetrics();
+
+  const prDate=new Date().toLocaleDateString('en-CA',{
+    timeZone:'America/Puerto_Rico'
+  });
+
+  const recommendations=eligibleGames.map(game=>{
+    const rows=drawsWindow(0,game);
+    if(!rows.length)return null;
+
+    const mode=rows.length>=25
+      ?'balanced'
+      :rows.length>=10
+        ?'mixed'
+        :'conservative';
+
+    const lastDate=latest(game)?.date||'sin-datos';
+    const cacheKey=`dashboard-all-${game}-${prDate}-${rows.length}-${lastDate}`;
+
+    let combo=null;
+
+    try{
+      const saved=localStorage.getItem(cacheKey);
+      if(saved)combo=JSON.parse(saved);
+    }catch(e){}
+
+    if(!combo){
+      combo=proGenerate(mode,1,game)[0];
+      if(!combo)return null;
+
+      combo.mode=mode;
+      combo.explanation=`Perfil ${mode}: ${explainCombo(combo)}. Basado en ${rows.length} sorteos cargados.`;
+
+      try{
+        localStorage.setItem(cacheKey,JSON.stringify(combo));
+      }catch(e){}
+    }
+
+    const metric=metrics.find(x=>x.game===game);
+
+    return {
+      ...combo,
+      dashboardScore:metric?.avgScore||combo.factors?.score||0,
+      gameLabel:GAMES[game].label,
+      draws:rows.length
+    };
+  })
+  .filter(Boolean)
+  .sort((a,b)=>b.dashboardScore-a.dashboardScore);
+
+  return recommendations;
+}
   function drawSpark(canvasId,values){
     const c=document.getElementById(canvasId);if(!c||!values.length)return;const ctx=c.getContext('2d'),dpr=devicePixelRatio||1,w=c.clientWidth||240,h=c.clientHeight||52;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
     const min=Math.min(...values),max=Math.max(...values),pad=5,step=(w-pad*2)/Math.max(1,values.length-1);
@@ -2238,7 +2293,7 @@ const dashboardGame=bestGame.game;
     ctx.lineTo(w-pad,h-pad);ctx.lineTo(pad,h-pad);ctx.closePath();const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(35,214,209,.28)');g.addColorStop(1,'rgba(35,214,209,0)');ctx.fillStyle=g;ctx.fill();
   }
   function renderSummary(){
-    const metrics=allGameMetrics(),m=metrics.find(x=>x.game===currentGame),rec=dailyRecommendation(),rows=drawsWindow(),sums=sumBuckets(rows),cfg=GAMES[currentGame];
+    const metrics=allGameMetrics(),m=metrics.find(x=>x.game===currentGame),recs=dashboardRecommendations(),rows=drawsWindow(),sums=sumBuckets(rows),cfg=GAMES[currentGame];
     const trendData=rows.slice(-14).map(d=>d.numbers.reduce((a,b)=>a+b,0));
     return `<section class="hero hero-pro"><div><span class="premium-badge"><span class="status-dot"></span> V3.5.1 ESTABLE</span><div class="section-kicker">Centro de mando</div><h2>Dashboard inteligente</h2><p>Lectura rápida del historial, señales recientes y combinación destacada del juego seleccionado.</p></div><div class="top-actions"><span class="signal-chip">● ${rows.length} sorteos analizados</span><span class="signal-chip">Juego: ${cfg.label}</span></div></section>
       ${rows.length>=25?`<div class="backup-banner" style="margin-top:14px"><div><b>Respaldo recomendado</b><div class="sub">Tienes ${rows.length} sorteos en ${cfg.label}. Guarda una copia antes de grandes cambios.</div></div><button class="btn small" id="quickBackup">Descargar respaldo</button></div>`:''}<div class="dashboard-grid" style="margin-top:14px">
@@ -2246,7 +2301,41 @@ const dashboardGame=bestGame.game;
         <div class="metric-card"><span class="sub">Estabilidad de frecuencia</span><strong>${m?.stability||0}%</strong><span class="signal-chip">${(m?.stability||0)>=70?'Uniforme':'Variable'}</span></div>
         <div class="metric-card"><span class="sub">Suma promedio</span><strong>${sums.avg.toFixed(1)}</strong><span class="signal-chip">Rango ${sums.min}-${sums.max}</span></div>
         <div class="metric-card"><span class="sub">Afinidad del modelo</span><strong>${rec?.factors?.score||0}</strong><span class="signal-chip">Índice interno</span></div>
-        <article class="card w8"><h3>Recomendación destacada</h3>${rec?`<div class="recommendation"><div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap"><div><div class="sub">Perfil ${esc(rec.mode)}</div><div class="combo-left" style="margin-top:10px">${rec.numbers.map(n=>`<span class="ball">${n}</span>`).join('')}${rec.bonus!=null?`<span>+</span><span class="ball red">${rec.bonus}</span>`:''}</div></div><div class="confidence-ring" style="--score:${rec.factors.score}"><b>${rec.factors.score}</b></div></div><p class="sub" style="margin-top:12px">${esc(rec.explanation)}</p><button class="btn small" data-favorite='${encodeURIComponent(JSON.stringify(rec))}'>★ Guardar recomendación</button></div>`:`<div class="empty">Agrega resultados para generar una recomendación.</div>`}</article>
+       <article class="card w8">
+  <h3>Recomendaciones destacadas</h3>
+  ${
+    recs && recs.length
+    ? recs.map((rec,i)=>`
+        <div class="recommendation" style="margin-bottom:12px;${i===0?'border:1px solid rgba(255,179,71,.75);':''}">
+          <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap">
+            <div>
+              <div class="sub">
+                ${i===0?'🏆 ':''}${esc(rec.gameLabel)} · Perfil ${esc(rec.mode)}
+              </div>
+
+              <div class="combo-left" style="margin-top:10px">
+                ${rec.numbers.map(n=>`<span class="ball">${n}</span>`).join('')}
+                ${rec.bonus!=null?`<span>+</span><span class="ball red">${rec.bonus}</span>`:''}
+              </div>
+            </div>
+
+            <div class="confidence-ring" style="--score:${rec.dashboardScore}">
+              <b>${rec.dashboardScore}</b>
+            </div>
+          </div>
+
+          <p class="sub" style="margin-top:12px">
+            ${esc(rec.explanation)}
+          </p>
+
+          <button class="btn small" data-favorite='${encodeURIComponent(JSON.stringify(rec))}'>
+            ★ Guardar recomendación
+          </button>
+        </div>
+      `).join('')
+    : `<div class="empty">Agrega resultados para generar recomendaciones.</div>`
+  }
+</article>
         <article class="card"><h3>Actividad reciente</h3><div class="sub">Suma de números en los últimos 14 sorteos</div><canvas id="summarySpark" class="spark"></canvas><div class="kpi-row" style="grid-template-columns:1fr 1fr"><div class="kpi"><span class="sub">Últimos 7</span><strong>${Math.min(7,rows.length)}</strong></div><div class="kpi"><span class="sub">Más fuerte</span><strong>${m?.top?.[0]??'—'}</strong></div></div></article>
         <article class="card w12"><h3>Estado de todos los juegos</h3><div class="game-status">${metrics.map(x=>`<div class="game-mini"><b>${x.label}</b><span class="sub">${x.total} sorteos</span><div class="progress"><i style="width:${Math.min(100,x.stability)}%"></i></div><div style="display:flex;justify-content:space-between;margin-top:8px"><span>Estabilidad ${x.stability}%</span><span>${x.latest?x.latest.date:'Sin datos'}</span></div></div>`).join('')}</div></article>
       </div>`;
