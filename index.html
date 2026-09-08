@@ -2315,7 +2315,7 @@ const dashboardGame=bestGame.game;
   ${
     recs && recs.length
     ? recs.map((rec,i)=>`
-        <div class="recommendation" style="margin-bottom:12px;${rec.dashboardScore===maxDashboardScore?'border:1px solid rgba(255,179,71,.75);':''}
+       <div class="recommendation" style="position:relative;padding-right:90px;margin-bottom:12px;${rec.dashboardScore===maxDashboardScore?'border:1px solid rgba(255,179,71,.75);':''}">
           <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:nowrap;width:100%">
             <div>
               <div class="sub">
@@ -2328,7 +2328,7 @@ const dashboardGame=bestGame.game;
               </div>
             </div>
 
-            <div class="confidence-ring" style="--score:${rec.dashboardScore}">
+            <div class="confidence-ring" style="--score:${rec.dashboardScore};position:absolute;right:18px;top:18px">
               <b>${rec.dashboardScore}</b>
             </div>
           </div>
