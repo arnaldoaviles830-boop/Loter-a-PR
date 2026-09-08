@@ -2231,7 +2231,14 @@ const dashboardGame=bestGame.game;
 
   return combo;
 }
-  function dashboardRecommendations(){
+  const eligibleGames=[
+  'pega3_dia',
+  'pega4_dia',
+  'pega3_noche',
+  'pega4_noche',
+  'loto',
+  'powerball'
+];
   const eligibleGames=GAME_KEYS.filter(game=>game!=='revancha');
 
   const metrics=allGameMetrics();
@@ -2282,7 +2289,7 @@ const dashboardGame=bestGame.game;
     };
   })
   .filter(Boolean)
-  .sort((a,b)=>b.dashboardScore-a.dashboardScore);
+ 
 
   return recommendations;
 }
