@@ -1158,6 +1158,33 @@ function boloLotoColumnStats(game='loto',bonus=1){
 
   return {rows,columns:ranked};
 }
+  function boloLotoTopOverall(game='loto',bonus=1){
+  const rows=(state.draws[game]||[])
+    .filter(d=>Number(d.bonus)===Number(bonus));
+
+  const freq={};
+
+  rows.forEach(d=>{
+    if(!Array.isArray(d.numbers))return;
+
+    d.numbers.forEach(n=>{
+      n=Number(n);
+      if(!Number.isFinite(n)||n<1||n>35)return;
+      freq[n]=(freq[n]||0)+1;
+    });
+  });
+
+  return Object.entries(freq)
+    .map(([n,count])=>({
+      n:Number(n),
+      count,
+      pct:rows.length
+        ? Math.round(count/rows.length*100)
+        : 0
+    }))
+    .sort((a,b)=>b.count-a.count||a.n-b.n)
+    .slice(0,5);
+}
 function generateBoloLotoRecommendations(stats,bonus,count=5){
   if(!stats || !stats.columns || stats.columns.length<5)return [];
 
@@ -1230,6 +1257,7 @@ function renderBoloLoto(){
   const game=(currentGame==='revancha')?'revancha':'loto';
   const bonus=Number(localStorage.getItem('bolo-loto-selected')||1);
   const stats=boloLotoColumnStats(game,bonus);
+  const topOverall=boloLotoTopOverall(game,bonus);
 const recommendations=generateBoloLotoRecommendations(stats,bonus,5);
   return `
     <div class="grid">
@@ -1265,7 +1293,26 @@ const recommendations=generateBoloLotoRecommendations(stats,bonus,5);
           ${stats.rows.length} sorteos encontrados · ${GAMES[game].label}
         </div>
       </article>
+<article class="card w12">
+  <h3>🔥 Top 5 números asociados al Bolo ${bonus}</h3>
 
+  <div class="sub">
+    Números que más veces han aparecido en cualquier posición cuando salió este bolo rojo.
+  </div>
+
+  <div class="number-cloud" style="margin-top:14px">
+    ${
+      topOverall.length
+      ? topOverall.map((x,i)=>`
+          <span class="signal-ball">
+            ${x.n}
+            <small>#${i+1} · ${x.count} · ${x.pct}%</small>
+          </span>
+        `).join('')
+      : '<div class="empty">Sin datos suficientes para este bolo.</div>'
+    }
+  </div>
+</article>
       ${stats.columns.map((col,i)=>`
         <article class="card">
           <h3>Columna ${i+1}</h3>
