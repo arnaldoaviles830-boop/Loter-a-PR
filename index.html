@@ -654,7 +654,7 @@ const THEME_KEY='loteria-pr-theme';
     const appState=window.LoteriaAppState;
 if(!appState||typeof appState!=='object')issues.push('Estado principal inválido');
     if(!appState.draws||typeof appState.draws!=='object')issues.push('Colección de sorteos ausente');
-    GAME_KEYS.forEach(k=>{
+    Object.keys(window.LoteriaGames||{}).forEach(k=>{
       if(!Array.isArray(appState.draws?.[k]))issues.push(`Historial inválido: ${k}`);
       (appState.draws?.[k]||[]).forEach((d,i)=>{
         if(!d.date||!Array.isArray(d.numbers))issues.push(`${k} fila ${i+1}: formato incompleto`);
