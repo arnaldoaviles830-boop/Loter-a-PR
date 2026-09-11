@@ -671,11 +671,13 @@ if(!appState||typeof appState!=='object')issues.push('Estado principal inválido
     push('Almacenamiento local',ls,ls?'Disponible':'Bloqueado por el navegador');
     const audit=stateAudit();
     push('Integridad de datos',audit.length===0,audit.length?audit.join(' · '):'Sin problemas detectados');
-    push('Generador',typeof proGenerate==='function','Motor Pro disponible');
-    push('Simulador',typeof runBacktest==='function','Pruebas retrospectivas disponibles');
-    push('Importación CSV',typeof parseCSV==='function','Lector CSV disponible');
-    push('Exportación',typeof download==='function','Descargas disponibles');
-    push('Tema',typeof applyTheme==='function','Tema claro/oscuro disponible');
+    const tools=window.LoteriaDiagnosticsTools||{};
+
+push('Generador',typeof tools.proGenerate==='function','Motor Pro disponible');
+push('Simulador',typeof tools.runBacktest==='function','Pruebas retrospectivas disponibles');
+push('Importación CSV',typeof tools.parseCSV==='function','Lector CSV disponible');
+push('Exportación',typeof tools.download==='function','Descargas disponibles');
+push('Tema',typeof tools.applyTheme==='function','Tema claro/oscuro disponible');
     return tests;
   }
   function renderDiagnostic(){
@@ -2618,6 +2620,13 @@ const dashboardGame=bestGame.game;
   window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;toast('Aplicación instalada')});
   window.addEventListener('online',()=>{if(currentView==='instalar')render()});
   window.addEventListener('offline',()=>{if(currentView==='instalar')render()});
+  window.LoteriaDiagnosticsTools={
+  proGenerate,
+  runBacktest,
+  parseCSV,
+  download,
+  applyTheme
+};
   registerServiceWorker();
   initNav();render();
  async function checkAutoSync(){
