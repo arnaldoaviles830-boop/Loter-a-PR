@@ -651,15 +651,16 @@ const THEME_KEY='loteria-pr-theme';
   }
   function stateAudit(){
     const issues=[];
-    if(!state||typeof state!=='object')issues.push('Estado principal inválido');
-    if(!state.draws||typeof state.draws!=='object')issues.push('Colección de sorteos ausente');
+    const appState=window.LoteriaAppState;
+if(!appState||typeof appState!=='object')issues.push('Estado principal inválido');
+    if(!appState.draws||typeof appState.draws!=='object')issues.push('Colección de sorteos ausente');
     GAME_KEYS.forEach(k=>{
-      if(!Array.isArray(state.draws?.[k]))issues.push(`Historial inválido: ${k}`);
-      (state.draws?.[k]||[]).forEach((d,i)=>{
+      if(!Array.isArray(appState.draws?.[k]))issues.push(`Historial inválido: ${k}`);
+      (appState.draws?.[k]||[]).forEach((d,i)=>{
         if(!d.date||!Array.isArray(d.numbers))issues.push(`${k} fila ${i+1}: formato incompleto`);
       });
     });
-    if(!Array.isArray(state.favorites))issues.push('Favoritos inválidos');
+   if(!Array.isArray(appState.favorites))issues.push('Favoritos inválidos');
     return issues;
   }
   function runDiagnostics(){
