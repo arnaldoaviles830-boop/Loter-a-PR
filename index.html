@@ -1492,7 +1492,8 @@ document.getElementById('mobileDock').innerHTML=NAV.map(([id,ic,lab])=>`<button 
     render();
     return;
   }
-})
+});
+}
 document.addEventListener('change',e=>{
   if(e.target && e.target.id==='boloLotoSelect'){
     localStorage.setItem('bolo-loto-selected',e.target.value);
