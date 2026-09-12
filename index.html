@@ -795,6 +795,9 @@ const error=window.LoteriaValidate(window.LoteriaGames[game],numbers,bonus);
       const parsed=normalizeRemoteResult(item);
       if(!parsed.ok){invalid++;if(errors.length<5)errors.push(parsed.error);return}
       const x=parsed.value;
+      if(!Array.isArray(window.LoteriaAppState.draws[x.game])){
+  window.LoteriaAppState.draws[x.game]=[];
+}
       const duplicate=window.LoteriaAppState.draws[x.game].some(d=>d.date===x.date&&JSON.stringify(d.numbers)===JSON.stringify(x.numbers)&&d.bonus===x.bonus);
       if(duplicate){duplicates++;return}
      window.LoteriaAppState.draws[x.game].push({
