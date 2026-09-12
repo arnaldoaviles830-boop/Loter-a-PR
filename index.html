@@ -1475,6 +1475,7 @@ const recommendations=generateBoloLotoRecommendations(stats,bonus,5);
   function initNav(){const html=NAV.map(([id,ic,lab])=>`<button data-nav="${id}">${ic} &nbsp;${lab}</button>`).join('');document.getElementById('desktopNav').innerHTML=html;document.getElementById('mobileNav').innerHTML=NAV.map(([id,,lab])=>`<button class="btn small" data-nav="${id}">${lab}</button>`).join('');
 document.getElementById('mobileDock').innerHTML=NAV.map(([id,ic,lab])=>`<button data-nav="${id}"><div style="font-size:1.2rem">${ic}</div>${lab}</button>`).join('');
                      document.getElementById('mobileDock').classList.remove('hidden');
+                     document.getElementById('gameTabs').innerHTML=GAME_KEYS.map(k=>`<button class="btn small" data-game="${k}">${GAMES[k].short}</button>`).join('');
   document.addEventListener('click',e=>{
   const n=e.target.closest('[data-nav]');
   if(n){
