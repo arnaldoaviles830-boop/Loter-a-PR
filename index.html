@@ -881,7 +881,8 @@ const payload=await window.LoteriaSync.fetchAllHistory(from,to);
     pega4_noche:{label:'Pega 4 · Noche',short:'P4N',type:'digits',count:4,min:0,max:9},
     loto:{label:'Loto',short:'LOTO',type:'balls',count:5,min:1,max:35,bonusLabel:'Bolo Rojo',bonusMax:10},
 revancha:{label:'Revancha',short:'REV',type:'balls',count:5,min:1,max:35,bonusLabel:'Bolo Rojo',bonusMax:10},
-    powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26}
+    powerball:{label:'Powerball',short:'PB',type:'balls',count:5,min:1,max:69,bonusLabel:'Powerball',bonusMax:26},
+kino:{label:'Kino',short:'KINO',type:'balls',count:20,min:1,max:80,pickCount:10}
   };
   const GAME_KEYS=Object.keys(GAMES);window.LoteriaGames=GAMES;
   const NAV=[['resumen','⌂','Dashboard Pro'],['agregar','＋','Agregar'],['historial','▤','Historial'],['estadisticas','▥','Estadísticas'],['tendencias','↗','Tendencias'],['patrones','⌘','Patrones'],['correlaciones','⛓','Correlaciones'],['top100','🏆','Top 100'],['comparar','⇄','Comparar juegos'],['rendimiento','◎','Rendimiento'],['simulador','◫','Simulador'],['importar','⇩','Importar CSV'],['generador','✦','Generador Pro'],['favoritos','★','Favoritos inteligentes'],['prediccion','◉','Predicción V4.2'],['senal','⚡','Señales V4.4'],['ranking','🏆','Ranking diario'],['laboratorio','🧠','Laboratorio V5'],['bololoto','🔴','Análisis Bolo Loto'],['nube','☁','Nube V5'],['instalar','⬇','Instalar App'],['datos','⇄','Centro de Datos'],['diagnostico','✓','Diagnóstico'],['ayuda','?','Ayuda']];
