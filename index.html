@@ -1331,10 +1331,10 @@ const recommendations=generateBoloLotoRecommendations(stats,bonus,5);
     ${
       topOverall.length
       ? topOverall.map((x,i)=>`
-          <span class="signal-ball">
-            ${x.n}
-            <small>#${i+1} · ${x.count} · ${x.pct}%</small>
-          </span>
+          <span class="signal-ball" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;height:auto;min-height:82px;margin-bottom:8px;">
+  <span>${x.n}</span>
+  <small style="display:block;margin-top:12px;line-height:1.2;white-space:nowrap;">#${i+1} · ${x.count} · ${x.pct}%</small>
+</span>
         `).join('')
       : '<div class="empty">Sin datos suficientes para este bolo.</div>'
     }
