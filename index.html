@@ -1527,7 +1527,7 @@ document.addEventListener('change',e=>{
 
 
   function drawsWindow(limit=0,game=currentGame){
-    const rows=[...state.draws[game]].sort((a,b)=>a.date.localeCompare(b.date));
+    const rows=[...(state.draws[game]||[])].sort((a,b)=>a.date.localeCompare(b.date));
     return limit>0?rows.slice(-limit):rows;
   }
   function freqFromRows(rows,game=currentGame){
