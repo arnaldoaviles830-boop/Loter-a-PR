@@ -661,7 +661,15 @@ async function fetchHistory(gameId, from, to) {
     results
   };
 }
-
+window.LoteriaSync = {
+  getLog,
+  addLog,
+  health,
+  fetchResults,
+  fetchHistory,
+  fetchAllHistory
+};
+})();
 /* ===== MÓDULO: aplicación principal ===== */
 /**
  * Lotería PR V4.0 Modular
