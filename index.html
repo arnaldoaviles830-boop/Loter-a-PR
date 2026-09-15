@@ -640,34 +640,27 @@ async function fetchHistory(gameId, from, to) {
     `/api/history?gameId=${encodeURIComponent(gameId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
   );
 }
-  async function fetchAllHistory(from, to) {
+ async function fetchAllHistory(from, to) {
   const gameIds = [3, 4, 6, 7, 8, 9, 10, 13];
+  const results = [];
 
-  const responses = await Promise.all(
-    gameIds.map(gameId =>
-      fetchHistory(gameId, from, to)
-    )
-  );
+  for (const gameId of gameIds) {
+    try {
+      const response = await fetchHistory(gameId, from, to);
+
+      if (Array.isArray(response?.results)) {
+        results.push(...response.results);
+      }
+    } catch (error) {
+      console.warn(`No se pudo sincronizar gameId=${gameId}:`, error);
+    }
+  }
 
   return {
     ok: true,
-    results: responses.flatMap(
-      response =>
-        Array.isArray(response?.results)
-          ? response.results
-          : []
-    )
+    results
   };
 }
-  window.LoteriaSync = {
-    getLog,
-    addLog,
-    health,
-    fetchResults,
-    fetchHistory,
-    fetchAllHistory
-  };
-})();
 
 /* ===== MÓDULO: aplicación principal ===== */
 /**
