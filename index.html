@@ -1541,6 +1541,50 @@ document.addEventListener('change',e=>{
     for(let i=cfg.min;i<=cfg.max;i++)gaps[i]=last[i]<0?rows.length:rows.length-1-last[i];
     return gaps;
   }
+  function numberModelFromRows(rows,game=currentGame,weights={}){
+  const cfg=GAMES[game];
+  if(!rows.length)return [];
+
+  const w={
+    long:weights.long??.25,
+    recent:weights.recent??.35,
+    gap:weights.gap??.20,
+    momentum:weights.momentum??.20
+  };
+
+  const recent7=rows.slice(-7);
+  const recent15=rows.slice(-15);
+  const recent30=rows.slice(-30);
+
+  const fAll=normalizeMap(freqFromRows(rows,game));
+  const f7=normalizeMap(freqFromRows(recent7,game));
+  const f15=normalizeMap(freqFromRows(recent15,game));
+  const f30=normalizeMap(freqFromRows(recent30,game));
+  const gaps=normalizeMap(gapStats(rows,game));
+
+  const model=[];
+
+  for(let n=cfg.min;n<=cfg.max;n++){
+    const long=fAll[n]??0;
+    const recent=(f7[n]??0)*.5+(f15[n]??0)*.3+(f30[n]??0)*.2;
+    const gap=gaps[n]??0;
+    const momentum=Math.max(
+      0,
+      Math.min(1,.5+(f7[n]??0)-(f30[n]??0))
+    );
+
+    const score=100*(
+      long*w.long+
+      recent*w.recent+
+      gap*w.gap+
+      momentum*w.momentum
+    );
+
+    model.push({n,long,recent,gap,momentum,score});
+  }
+
+  return model.sort((a,b)=>b.score-a.score||a.n-b.n);
+}
   function pairStats(rows){
     const pairs={};rows.forEach(d=>{const nums=[...new Set(d.numbers)].sort((a,b)=>a-b);for(let i=0;i<nums.length;i++)for(let j=i+1;j<nums.length;j++){const k=nums[i]+'-'+nums[j];pairs[k]=(pairs[k]||0)+1}});
     return Object.entries(pairs).map(([pair,c])=>({pair,c})).sort((a,b)=>b.c-a.c||a.pair.localeCompare(b.pair));
@@ -2682,7 +2726,7 @@ const dashboardGame=bestGame.game;
     }
 
     if(currentView==='simulador'){
-      document.getElementById('simForm').onsubmit=e=>{e.preventDefault();const mode=document.getElementById('simMode').value,train=+document.getElementById('simTrain').value,r=runBacktest(mode,train),cfg=GAMES[currentGame];document.getElementById('simOutput').innerHTML=r.results.length?`<div class="kpi-row"><div class="kpi"><span class="sub">Pruebas</span><strong>${r.results.length}</strong></div><div class="kpi"><span class="sub">Aciertos medios</span><strong>${r.avg.toFixed(2)}</strong></div><div class="kpi"><span class="sub">Mejor resultado</span><strong>${r.best}/${cfg.count}</strong></div><div class="kpi"><span class="sub">Exactos</span><strong>${r.exact}</strong></div></div><div class="notice">Puntuación descriptiva: <span class="score">${Math.min(100,Math.round(r.avg/cfg.count*100))}%</span></div>`:`<div class="empty">Necesitas más de ${train} sorteos para evaluar.</div>`;document.getElementById('simTable').innerHTML=r.results.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Combinación generada</th><th>Resultado real</th><th>Aciertos</th></tr></thead><tbody>${r.results.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.combo.join('-')}</td><td>${x.actual.join('-')}</td><td><b>${x.hits}</b></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Sin evaluaciones.</div>`}
+      document.getElementById('simForm').onsubmit=e=>{e.preventDefault();const mode=document.getElementById('simMode').value,train=+document.getElementById('simTrain').value,r=runBacktest(mode,train),cfg=GAMES[currentGame],targetCount=cfg.pickCount||cfg.count;document.getElementById('simOutput').innerHTML=r.results.length?`<div class="kpi-row"><div class="kpi"><span class="sub">Pruebas</span><strong>${r.results.length}</strong></div><div class="kpi"><span class="sub">Aciertos medios</span><strong>${r.avg.toFixed(2)}</strong></div><div class="kpi"><span class="sub">Mejor resultado</span><strong>${r.best}/${targetCount}</strong></div><div class="kpi"><span class="sub">Exactos</span><strong>${r.exact}</strong></div></div><div class="notice">Puntuación descriptiva: <span class="score">${Math.min(100,Math.round(r.avg/targetCount*100))}%</span></div>`:`<div class="empty">Necesitas más de ${train} sorteos para evaluar.</div>`;document.getElementById('simTable').innerHTML=r.results.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Combinación generada</th><th>Resultado real</th><th>Aciertos</th></tr></thead><tbody>${r.results.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.combo.join('-')}</td><td>${x.actual.join('-')}</td><td><b>${x.hits}</b></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Sin evaluaciones.</div>`}
     }
     if(currentView==='importar'){
       let parsed=[];const file=document.getElementById('csvFile'),preview=document.getElementById('csvPreview');
