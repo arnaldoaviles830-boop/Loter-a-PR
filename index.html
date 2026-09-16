@@ -1618,6 +1618,7 @@ document.addEventListener('change',e=>{
   }
   function numberModel(game=currentGame){
     const cfg=GAMES[game],all=drawsWindow(0,game),recent7=drawsWindow(7,game),recent15=drawsWindow(15,game),recent30=drawsWindow(30,game);
+    const targetCount=cfg.pickCount||cfg.count;
     const fAll=normalizeMap(freqFromRows(all,game)),f7=normalizeMap(freqFromRows(recent7,game)),f15=normalizeMap(freqFromRows(recent15,game)),f30=normalizeMap(freqFromRows(recent30,game));
     const gaps=normalizeMap(gapStats(all,game)),model=[];
     for(let n=cfg.min;n<=cfg.max;n++){
