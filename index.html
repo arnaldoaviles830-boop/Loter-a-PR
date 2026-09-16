@@ -1623,15 +1623,16 @@ document.addEventListener('change',e=>{
     </div>`;
   }
   function strategyCombo(rows,mode,game=currentGame){
-    const cfg=GAMES[game],freq=Object.entries(freqFromRows(rows,game)).map(([n,c])=>({n:+n,c})).sort((a,b)=>b.c-a.c||a.n-b.n);
+    const cfg=GAMES[game],targetCount=cfg.pickCount||cfg.count,freq=Object.entries(freqFromRows(rows,game)).map(([n,c])=>({n:+n,c})).sort((a,b)=>b.c-a.c||a.n-b.n);
     if(!rows.length)return null;
     let pool;
-    if(mode==='hot')pool=freq;
+    if(mode==='model')pool=numberModelFromRows(rows,game).map(x=>({n:x.n,c:x.score}));
+else if(mode==='hot')pool=freq;
     else if(mode==='cold')pool=[...freq].reverse();
-    else if(mode==='balanced'){const a=freq.slice(0,Math.max(cfg.count*3,10)),b=[...freq].reverse().slice(0,Math.max(cfg.count*3,10));pool=[];for(let i=0;i<Math.max(a.length,b.length);i++){if(a[i])pool.push(a[i]);if(b[i])pool.push(b[i])}}
+    else if(mode==='balanced'){const a=freq.slice(0,Math.max(targetCount*3,10)),b=[...freq].reverse().slice(0,Math.max(targetCount*3,10));pool=[];for(let i=0;i<Math.max(a.length,b.length);i++){if(a[i])pool.push(a[i]);if(b[i])pool.push(b[i])}}
     else pool=freq.map(x=>({...x,c:1}));
     const picked=[];const used=new Set();
-    for(const x of pool){if(cfg.type==='balls'&&used.has(x.n))continue;picked.push(x.n);used.add(x.n);if(picked.length===cfg.count)break}
+    for(const x of pool){if(cfg.type==='balls'&&used.has(x.n))continue;picked.push(x.n);used.add(x.n);if(picked.length===targetCount)break}
     if(cfg.type==='balls')picked.sort((a,b)=>a-b);return picked;
   }
   function runBacktest(mode,train=10){
