@@ -1630,7 +1630,7 @@ document.addEventListener('change',e=>{
 else if(mode==='hot')pool=freq;
     else if(mode==='cold')pool=[...freq].reverse();
     else if(mode==='balanced'){const a=freq.slice(0,Math.max(targetCount*3,10)),b=[...freq].reverse().slice(0,Math.max(targetCount*3,10));pool=[];for(let i=0;i<Math.max(a.length,b.length);i++){if(a[i])pool.push(a[i]);if(b[i])pool.push(b[i])}}
-    else pool=freq.map(x=>({...x,c:1}));
+    else pool=[...freq].sort(()=>Math.random()-.5).map(x=>({...x,c:1}));
     const picked=[];const used=new Set();
     for(const x of pool){if(cfg.type==='balls'&&used.has(x.n))continue;picked.push(x.n);used.add(x.n);if(picked.length===targetCount)break}
     if(cfg.type==='balls')picked.sort((a,b)=>a-b);return picked;
