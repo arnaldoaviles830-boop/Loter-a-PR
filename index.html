@@ -1690,6 +1690,73 @@ else if(mode==='hot')pool=freq;
     best
   };
 }
+  function optimizeModelWeights(train=50,game=currentGame){
+  const rows=drawsWindow(0,game);
+  const cfg=GAMES[game];
+  const targetCount=cfg.pickCount||cfg.count;
+
+  const candidates=[
+    {name:'Actual',long:.25,recent:.35,gap:.20,momentum:.20},
+    {name:'Frecuencia+',long:.40,recent:.30,gap:.10,momentum:.20},
+    {name:'Reciente+',long:.20,recent:.45,gap:.10,momentum:.25},
+    {name:'Momentum+',long:.20,recent:.30,gap:.10,momentum:.40},
+    {name:'Atraso bajo',long:.30,recent:.35,gap:.05,momentum:.30},
+    {name:'Balance A',long:.30,recent:.30,gap:.15,momentum:.25},
+    {name:'Balance B',long:.35,recent:.30,gap:.10,momentum:.25},
+    {name:'Balance C',long:.25,recent:.40,gap:.10,momentum:.25},
+    {name:'Sin atraso',long:.30,recent:.40,gap:0,momentum:.30}
+  ];
+
+  const output=[];
+
+  for(const weights of candidates){
+    let totalHits=0;
+    let tests=0;
+    let best=0;
+    let exact=0;
+    let onePlus=0;
+
+    for(let i=train;i<rows.length;i++){
+      const history=rows.slice(Math.max(0,i-train),i);
+
+      const model=numberModelFromRows(history,game,weights);
+      if(!model.length)continue;
+
+      const combo=model
+        .slice(0,targetCount)
+        .map(x=>x.n);
+
+      const actual=rows[i].numbers;
+
+      const hits=cfg.type==='balls'
+        ? actual.filter(n=>combo.includes(n)).length
+        : actual.reduce((total,n,j)=>total+(n===combo[j]?1:0),0);
+
+      totalHits+=hits;
+      tests++;
+      best=Math.max(best,hits);
+
+      if(hits===targetCount)exact++;
+      if(hits>=1)onePlus++;
+    }
+
+    output.push({
+      name:weights.name,
+      weights,
+      tests,
+      avg:tests?totalHits/tests:0,
+      best,
+      exact,
+      hitRate:tests?(onePlus/tests)*100:0
+    });
+  }
+
+  return output.sort((a,b)=>
+    b.avg-a.avg ||
+    b.best-a.best ||
+    b.hitRate-a.hitRate
+  );
+}
   function renderSimulator(){
     return `<div class="grid"><article class="card w6"><h3>Configurar prueba retrospectiva</h3><div class="sub">Cada predicción usa solo los sorteos anteriores; nunca mira el resultado futuro.</div><form id="simForm" style="margin-top:14px"><div class="form-grid"><div class="field"><label>Método</label><select id="simMode"><option value="model">Modelo predictivo</option><option value="modelNoGap">Modelo sin atraso (prueba)</option><option value="hot">Números calientes</option><option value="cold">Números fríos</option><option value="balanced" selected>Balance caliente/frío</option><option value="random">Referencia neutral</option></select></div><div class="field"><label>Ventana de entrenamiento</label><select id="simTrain"<option>5</option><option>10</option><option>25</option><option>50</option><option>100</option></select></div></div><button class="btn primary" style="margin-top:14px">Ejecutar simulación</button></form><div class="notice warn">Una buena puntuación histórica no garantiza resultados futuros. El simulador sirve para comparar reglas de forma consistente.</div></article><article class="card w6"><h3>Resultado del simulador</h3><div id="simOutput"><div class="empty">Ejecuta una prueba para ver métricas.</div></div></article><article class="card w12"><h3>Detalle de evaluaciones</h3><div id="simTable"><div class="empty">Aquí aparecerán los sorteos evaluados.</div></div></article></div>`;
   }
