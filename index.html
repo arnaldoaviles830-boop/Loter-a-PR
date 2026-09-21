@@ -3013,16 +3013,16 @@ const dashboardGame=bestGame.game;
       document.querySelectorAll('[data-save-note]').forEach(b=>b.onclick=()=>{const id=b.dataset.saveNote,ta=document.querySelector(`[data-note="${id}"]`),f=state.favorites.find(x=>x.id===id);if(f){f.note=ta.value;save();toast('Nota guardada')}});
     }
 
-    if(currentView==='simulador'){
+   if(currentView==='simulador'){
 
   document.getElementById('simForm').onsubmit=e=>{
     e.preventDefault();
 
-    const mode=document.getElementById('simMode').value,
-          train=+document.getElementById('simTrain').value,
-          r=runBacktest(mode,train),
-          cfg=GAMES[currentGame],
-          targetCount=cfg.pickCount||cfg.count;
+    const mode=document.getElementById('simMode').value;
+    const train=+document.getElementById('simTrain').value;
+    const r=runBacktest(mode,train);
+    const cfg=GAMES[currentGame];
+    const targetCount=cfg.pickCount||cfg.count;
 
     document.getElementById('simOutput').innerHTML=
       r.results.length
@@ -3070,16 +3070,17 @@ const dashboardGame=bestGame.game;
                 <th>Aciertos</th>
               </tr>
             </thead>
-
             <tbody>
               ${r.results.slice().reverse().map(x=>`
                 <tr>
                   <td>${x.date}</td>
                   <td>${x.combo.join('-')}</td>
                   <td>${x.actual.join('-')}</td>
-                  <td><b>${Number(x.hits).toFixed(
-                    mode==='random' ? 2 : 0
-                  )}</b></td>
+                  <td>
+                    <b>
+                      ${Number(x.hits).toFixed(mode==='random'?2:0)}
+                    </b>
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -3095,157 +3096,205 @@ const dashboardGame=bestGame.game;
 
     optimizeBtn.onclick=()=>{
 
-      const train=+document.getElementById('simTrain').value;
-      const results=optimizeModelWeights(train,currentGame);
       const out=document.getElementById('weightsOutput');
 
-      if(!results.length){
-        out.innerHTML=
-          `<div class="empty">
-            No hay suficientes sorteos para analizar.
-          </div>`;
-        return;
-      }
-
-      const targetCount=
-        GAMES[currentGame].pickCount||
-        GAMES[currentGame].count;
-
-      const best=results[0];
+      optimizeBtn.disabled=true;
+      optimizeBtn.textContent='Analizando...';
 
       out.innerHTML=`
-
-        <div class="kpi-row">
-
-          <div class="kpi">
-            <span class="sub">Configuraciones</span>
-            <strong>${results.length}</strong>
-          </div>
-
-          <div class="kpi">
-            <span class="sub">Ventana</span>
-            <strong>${train}</strong>
-          </div>
-
-          <div class="kpi">
-            <span class="sub">Mejor promedio histórico</span>
-            <strong>${best.avg.toFixed(4)}</strong>
-          </div>
-
-          <div class="kpi">
-            <span class="sub">Configuración superior</span>
-            <strong>${best.name}</strong>
-          </div>
-
-        </div>
-
-
         <div class="notice">
-          Mejor resultado histórico de esta comparación:
-          <strong>${best.name}</strong>
-
-          · Frecuencia
-          <strong>${Math.round(best.weights.long*100)}%</strong>
-
-          · Reciente
-          <strong>${Math.round(best.weights.recent*100)}%</strong>
-
-          · Atraso
-          <strong>${Math.round(best.weights.gap*100)}%</strong>
-
-          · Momentum
-          <strong>${Math.round(best.weights.momentum*100)}%</strong>
+          Analizando configuraciones con ventanas 25, 50 y 100...
         </div>
-
-
-        <div class="table-wrap">
-
-          <table>
-
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Modelo</th>
-                <th>Frecuencia</th>
-                <th>Reciente</th>
-                <th>Atraso</th>
-                <th>Momentum</th>
-                <th>Pruebas</th>
-                <th>Promedio</th>
-                <th>Mejor</th>
-                <th>Exactos</th>
-              </tr>
-            </thead>
-
-            <tbody>
-
-              ${results.map((x,i)=>`
-
-                <tr>
-
-                  <td>
-                    <b>${i+1}</b>
-                  </td>
-
-                  <td>
-                    <b>${i===0?'★ ':''}${x.name}</b>
-                  </td>
-
-                  <td>
-                    ${Math.round(x.weights.long*100)}%
-                  </td>
-
-                  <td>
-                    ${Math.round(x.weights.recent*100)}%
-                  </td>
-
-                  <td>
-                    ${Math.round(x.weights.gap*100)}%
-                  </td>
-
-                  <td>
-                    ${Math.round(x.weights.momentum*100)}%
-                  </td>
-
-                  <td>
-                    ${x.tests}
-                  </td>
-
-                  <td>
-                    <b>${x.avg.toFixed(4)}</b>
-                  </td>
-
-                  <td>
-                    ${x.best}/${targetCount}
-                  </td>
-
-                  <td>
-                    ${x.exact}
-                  </td>
-
-                </tr>
-
-              `).join('')}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-
-        <div class="notice warn">
-          El primer lugar representa únicamente el mejor rendimiento
-          dentro de esta prueba histórica. No significa que esa
-          configuración aumente la probabilidad matemática de ganar
-          un sorteo futuro.
-        </div>
-
       `;
+
+      setTimeout(()=>{
+
+        try{
+
+          const results=optimizeModelWeights(50,currentGame);
+
+          if(!results.length){
+            out.innerHTML=`
+              <div class="empty">
+                No hay suficientes sorteos para realizar la optimización.
+              </div>
+            `;
+            return;
+          }
+
+          const best=results[0];
+
+          out.innerHTML=`
+
+            <div class="kpi-row">
+
+              <div class="kpi">
+                <span class="sub">Configuraciones probadas</span>
+                <strong>${results.length}</strong>
+              </div>
+
+              <div class="kpi">
+                <span class="sub">Ventanas</span>
+                <strong>25 · 50 · 100</strong>
+              </div>
+
+              <div class="kpi">
+                <span class="sub">Mejor promedio combinado</span>
+                <strong>${best.combinedAvg.toFixed(4)}</strong>
+              </div>
+
+              <div class="kpi">
+                <span class="sub">Configuración más consistente</span>
+                <strong>${best.name}</strong>
+              </div>
+
+            </div>
+
+
+            <div class="notice">
+
+              Configuración histórica más consistente:
+
+              <strong>${best.name}</strong>
+
+              · Frecuencia
+              <strong>${Math.round(best.weights.long*100)}%</strong>
+
+              · Reciente
+              <strong>${Math.round(best.weights.recent*100)}%</strong>
+
+              · Atraso
+              <strong>${Math.round(best.weights.gap*100)}%</strong>
+
+              · Momentum
+              <strong>${Math.round(best.weights.momentum*100)}%</strong>
+
+            </div>
+
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Pesos</th>
+                    <th>Frecuencia</th>
+                    <th>Reciente</th>
+                    <th>Atraso</th>
+                    <th>Momentum</th>
+                    <th>25</th>
+                    <th>50</th>
+                    <th>100</th>
+                    <th>Promedio</th>
+                    <th>Variación</th>
+                    <th>Consistencia</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  ${results.map((x,i)=>`
+
+                    <tr>
+
+                      <td>
+                        <b>${i+1}</b>
+                      </td>
+
+                      <td>
+                        <b>${i===0?'★ ':''}${x.name}</b>
+                      </td>
+
+                      <td>
+                        ${Math.round(x.weights.long*100)}%
+                      </td>
+
+                      <td>
+                        ${Math.round(x.weights.recent*100)}%
+                      </td>
+
+                      <td>
+                        ${Math.round(x.weights.gap*100)}%
+                      </td>
+
+                      <td>
+                        ${Math.round(x.weights.momentum*100)}%
+                      </td>
+
+                      <td>
+                        ${x.avg25.toFixed(4)}
+                      </td>
+
+                      <td>
+                        ${x.avg50.toFixed(4)}
+                      </td>
+
+                      <td>
+                        ${x.avg100.toFixed(4)}
+                      </td>
+
+                      <td>
+                        <b>${x.combinedAvg.toFixed(4)}</b>
+                      </td>
+
+                      <td>
+                        ${x.spread.toFixed(4)}
+                      </td>
+
+                      <td>
+                        <b>${x.consistencyScore.toFixed(4)}</b>
+                      </td>
+
+                    </tr>
+
+                  `).join('')}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+
+            <div class="notice warn">
+
+              La clasificación combina el rendimiento histórico de
+              las ventanas 25, 50 y 100 y penaliza configuraciones
+              cuyo rendimiento cambia demasiado entre ventanas.
+
+              No representa una probabilidad matemática de ganar
+              sorteos futuros.
+
+            </div>
+          `;
+
+        }catch(error){
+
+          console.error(
+            'Error optimizando pesos:',
+            error
+          );
+
+          out.innerHTML=`
+            <div class="notice warn">
+              No se pudo completar el análisis.
+              Revisa la consola para identificar el error.
+            </div>
+          `;
+
+        }finally{
+
+          optimizeBtn.disabled=false;
+          optimizeBtn.textContent='Analizar pesos';
+
+        }
+
+      },50);
     };
   }
 }
-
 
 if(currentView==='importar'){
   let parsed=[];
