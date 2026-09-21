@@ -1695,66 +1695,230 @@ else if(mode==='hot')pool=freq;
   const cfg=GAMES[game];
   const targetCount=cfg.pickCount||cfg.count;
 
-  const candidates=[
-    {name:'Actual',long:.25,recent:.35,gap:.20,momentum:.20},
-    {name:'Frecuencia+',long:.40,recent:.30,gap:.10,momentum:.20},
-    {name:'Reciente+',long:.20,recent:.45,gap:.10,momentum:.25},
-    {name:'Momentum+',long:.20,recent:.30,gap:.10,momentum:.40},
-    {name:'Atraso bajo',long:.30,recent:.35,gap:.05,momentum:.30},
-    {name:'Balance A',long:.30,recent:.30,gap:.15,momentum:.25},
-    {name:'Balance B',long:.35,recent:.30,gap:.10,momentum:.25},
-    {name:'Balance C',long:.25,recent:.40,gap:.10,momentum:.25},
-    {name:'Sin atraso',long:.30,recent:.40,gap:0,momentum:.30}
-  ];
+  // Ventanas utilizadas para medir consistencia histórica.
+  const windows=[25,50,100];
+
+  // Búsqueda alrededor de las configuraciones que mejor
+  // comportamiento mostraron en las pruebas anteriores.
+  const longValues=[.35,.40,.45,.50];
+  const recentValues=[.20,.25,.30,.35];
+  const gapValues=[.05,.10,.15];
+  const momentumValues=[.15,.20,.25,.30];
+
+  const candidates=[];
+
+  for(const long of longValues){
+    for(const recent of recentValues){
+      for(const gap of gapValues){
+        for(const momentum of momentumValues){
+
+          const sum=long+recent+gap+momentum;
+
+          // Solo aceptamos configuraciones que sumen 100%.
+          if(Math.abs(sum-1)>.0001)continue;
+
+          candidates.push({
+            long,
+            recent,
+            gap,
+            momentum
+          });
+        }
+      }
+    }
+  }
 
   const output=[];
 
   for(const weights of candidates){
-    let totalHits=0;
-    let tests=0;
-    let best=0;
-    let exact=0;
-    let onePlus=0;
 
-    for(let i=train;i<rows.length;i++){
-      const history=rows.slice(Math.max(0,i-train),i);
+    const windowResults=[];
 
-      const model=numberModelFromRows(history,game,weights);
-      if(!model.length)continue;
+    for(const windowSize of windows){
 
-      const combo=model
-        .slice(0,targetCount)
-        .map(x=>x.n);
+      let totalHits=0;
+      let tests=0;
+      let best=0;
+      let exact=0;
 
-      const actual=rows[i].numbers;
+      for(let i=windowSize;i<rows.length;i++){
 
-      const hits=cfg.type==='balls'
-        ? actual.filter(n=>combo.includes(n)).length
-        : actual.reduce((total,n,j)=>total+(n===combo[j]?1:0),0);
+        const history=
+          rows.slice(
+            Math.max(0,i-windowSize),
+            i
+          );
 
-      totalHits+=hits;
-      tests++;
-      best=Math.max(best,hits);
+        const model=
+          numberModelFromRows(
+            history,
+            game,
+            weights
+          );
 
-      if(hits===targetCount)exact++;
-      if(hits>=1)onePlus++;
+        if(!model.length)continue;
+
+        const combo=
+          model
+            .slice(0,targetCount)
+            .map(x=>x.n);
+
+        const actual=rows[i].numbers;
+
+        const hits=
+          cfg.type==='balls'
+          ? actual.filter(
+              n=>combo.includes(n)
+            ).length
+          : actual.reduce(
+              (total,n,j)=>
+                total+
+                (n===combo[j]?1:0),
+              0
+            );
+
+        totalHits+=hits;
+        tests++;
+
+        best=Math.max(
+          best,
+          hits
+        );
+
+        if(hits===targetCount)
+          exact++;
+      }
+
+      windowResults.push({
+        window:windowSize,
+        tests,
+        avg:tests
+          ?totalHits/tests
+          :0,
+        best,
+        exact
+      });
     }
 
+
+    const valid=
+      windowResults.filter(
+        x=>x.tests>0
+      );
+
+    if(!valid.length)continue;
+
+
+    const avg25=
+      windowResults.find(
+        x=>x.window===25
+      )?.avg||0;
+
+    const avg50=
+      windowResults.find(
+        x=>x.window===50
+      )?.avg||0;
+
+    const avg100=
+      windowResults.find(
+        x=>x.window===100
+      )?.avg||0;
+
+
+    // Promedio de las tres ventanas.
+    const combinedAvg=
+      (avg25+avg50+avg100)/3;
+
+
+    // Medimos cuánto cambia el rendimiento
+    // entre las diferentes ventanas.
+    const minAvg=
+      Math.min(
+        avg25,
+        avg50,
+        avg100
+      );
+
+    const maxAvg=
+      Math.max(
+        avg25,
+        avg50,
+        avg100
+      );
+
+    const spread=
+      maxAvg-minAvg;
+
+
+    /*
+      SCORE DE CONSISTENCIA
+
+      Premiamos:
+      - promedio general alto
+      - buen resultado mínimo
+
+      Penalizamos:
+      - variaciones grandes entre ventanas
+
+      Este score solo sirve para comparar
+      configuraciones históricamente.
+    */
+
+    const consistencyScore=
+      combinedAvg-
+      spread*.50;
+
+
     output.push({
-      name:weights.name,
+
+      name:
+        `${Math.round(weights.long*100)}/`+
+        `${Math.round(weights.recent*100)}/`+
+        `${Math.round(weights.gap*100)}/`+
+        `${Math.round(weights.momentum*100)}`,
+
       weights,
-      tests,
-      avg:tests?totalHits/tests:0,
-      best,
-      exact,
-      hitRate:tests?(onePlus/tests)*100:0
+
+      windows:windowResults,
+
+      avg25,
+      avg50,
+      avg100,
+
+      combinedAvg,
+      spread,
+      consistencyScore,
+
+      tests:
+        valid.reduce(
+          (s,x)=>s+x.tests,
+          0
+        ),
+
+      best:
+        Math.max(
+          ...valid.map(x=>x.best)
+        ),
+
+      exact:
+        valid.reduce(
+          (s,x)=>s+x.exact,
+          0
+        )
     });
   }
 
-  return output.sort((a,b)=>
-    b.avg-a.avg ||
-    b.best-a.best ||
-    b.hitRate-a.hitRate
+
+  return output.sort(
+    (a,b)=>
+      b.consistencyScore-
+      a.consistencyScore ||
+
+      b.combinedAvg-
+      a.combinedAvg ||
+
+      a.spread-
+      b.spread
   );
 }
   function renderSimulator(){
