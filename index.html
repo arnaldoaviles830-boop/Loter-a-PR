@@ -3364,7 +3364,210 @@ const dashboardGame=bestGame.game;
         }finally{
 
           optimizeBtn.disabled=false;
-          optimizeBtn.textContent='Analizar pesos';
+          optimizeBtn.textContent='Analizar juego actual';
+
+        }
+
+      },50);
+    };
+  }
+       const optimizeAllBtn=document.getElementById('optimizeAllGamesBtn');
+
+  if(optimizeAllBtn){
+
+    optimizeAllBtn.onclick=()=>{
+
+      const out=document.getElementById('weightsOutput');
+
+      optimizeAllBtn.disabled=true;
+      optimizeBtn.disabled=true;
+      optimizeAllBtn.textContent='Analizando todos...';
+
+      out.innerHTML=`
+        <div class="notice">
+          Analizando cada juego independientemente con ventanas 25, 50 y 100...
+        </div>
+      `;
+
+      setTimeout(()=>{
+
+        try{
+
+          const all=optimizeAllGames();
+
+          const rows=GAME_KEYS
+            .map(game=>all[game])
+            .filter(Boolean);
+
+          const valid=rows.filter(x=>x.ok);
+
+          if(!valid.length){
+            out.innerHTML=`
+              <div class="empty">
+                No se pudieron obtener resultados para los juegos.
+              </div>
+            `;
+            return;
+          }
+
+          out.innerHTML=`
+
+            <div class="kpi-row">
+
+              <div class="kpi">
+                <span class="sub">Juegos analizados</span>
+                <strong>${valid.length}/${GAME_KEYS.length}</strong>
+              </div>
+
+              <div class="kpi">
+                <span class="sub">Ventanas</span>
+                <strong>25 · 50 · 100</strong>
+              </div>
+
+              <div class="kpi">
+                <span class="sub">Optimización</span>
+                <strong>Por juego</strong>
+              </div>
+
+              <div class="kpi">
+                <span class="sub">Configuraciones</span>
+                <strong>Independientes</strong>
+              </div>
+
+            </div>
+
+            <div class="table-wrap">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Juego</th>
+                    <th>Pesos</th>
+                    <th>Frecuencia</th>
+                    <th>Reciente</th>
+                    <th>Atraso</th>
+                    <th>Momentum</th>
+                    <th>25</th>
+                    <th>50</th>
+                    <th>100</th>
+                    <th>Promedio</th>
+                    <th>Variación</th>
+                    <th>Consistencia</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  ${rows.map(x=>{
+
+                    if(!x.ok){
+                      return `
+                        <tr>
+                          <td><b>${x.label}</b></td>
+                          <td colspan="11">
+                            ⚠ ${x.reason}
+                          </td>
+                        </tr>
+                      `;
+                    }
+
+                    return `
+                      <tr>
+
+                        <td>
+                          <b>${x.label}</b>
+                        </td>
+
+                        <td>
+                          <b>${x.configuration}</b>
+                        </td>
+
+                        <td>
+                          ${Math.round(x.weights.long*100)}%
+                        </td>
+
+                        <td>
+                          ${Math.round(x.weights.recent*100)}%
+                        </td>
+
+                        <td>
+                          ${Math.round(x.weights.gap*100)}%
+                        </td>
+
+                        <td>
+                          ${Math.round(x.weights.momentum*100)}%
+                        </td>
+
+                        <td>
+                          ${x.avg25.toFixed(4)}
+                        </td>
+
+                        <td>
+                          ${x.avg50.toFixed(4)}
+                        </td>
+
+                        <td>
+                          ${x.avg100.toFixed(4)}
+                        </td>
+
+                        <td>
+                          <b>${x.combinedAvg.toFixed(4)}</b>
+                        </td>
+
+                        <td>
+                          ${x.spread.toFixed(4)}
+                        </td>
+
+                        <td>
+                          <b>${x.consistencyScore.toFixed(4)}</b>
+                        </td>
+
+                      </tr>
+                    `;
+
+                  }).join('')}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+            <div class="notice">
+              Cada juego fue optimizado independientemente.
+              Los pesos mostrados todavía no se aplican automáticamente
+              a las recomendaciones.
+            </div>
+
+            <div class="notice warn">
+              Estos resultados comparan rendimiento histórico.
+              No representan una probabilidad matemática de ganar
+              sorteos futuros.
+            </div>
+          `;
+
+        }catch(error){
+
+          console.error(
+            'Error optimizando todos los juegos:',
+            error
+          );
+
+          out.innerHTML=`
+            <div class="notice warn">
+              No se pudo completar el análisis de todos los juegos.
+              Revisa la consola para identificar el error.
+            </div>
+          `;
+
+        }finally{
+
+          optimizeAllBtn.disabled=false;
+          optimizeBtn.disabled=false;
+
+          optimizeAllBtn.textContent='Analizar todos los juegos';
+          optimizeBtn.textContent='Analizar juego actual';
 
         }
 
