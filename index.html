@@ -2247,7 +2247,7 @@ while(nums.length<targetCount&&pool.length){let total=pool.reduce((a,x)=>a+x.w,0
             ${ranked.map(r=>`
               <tr>
                 <td><b>${r.label}</b></td>
-                <td>${r.avg.toFixed(2)}</td>
+                <td>${r.avg.toFixed(4)}</td>
                 <td>${r.best}</td>
                 <td>${r.exact}</td>
                 <td>${r.hitRate.toFixed(1)}%</td>
