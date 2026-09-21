@@ -2850,68 +2850,757 @@ const dashboardGame=bestGame.game;
     }
 
     if(currentView==='simulador'){
-document.getElementById('simForm').onsubmit=e=>{e.preventDefault();const mode=document.getElementById('simMode').value,train=+document.getElementById('simTrain').value,r=runBacktest(mode,train),cfg=GAMES[currentGame],targetCount=cfg.pickCount||cfg.count;document.getElementById('simOutput').innerHTML=r.results.length?`<div class="kpi-row"><div class="kpi"><span class="sub">Pruebas</span><strong>${r.results.length}</strong></div><div class="kpi"><span class="sub">Aciertos medios</span><strong>${r.avg.toFixed(4)}</strong></div><div class="kpi"><span class="sub">Mejor resultado</span><strong>${r.best}/${targetCount}</strong></div><div class="kpi"><span class="sub">Exactos</span><strong>${r.exact}</strong></div></div><div class="notice">Puntuación descriptiva: <span class="score">${Math.min(100,Math.round(r.avg/targetCount*100))}%</span></div>`:`<div class="empty">Necesitas más de ${train} sorteos para evaluar.</div>`;document.getElementById('simTable').innerHTML=r.results.length?`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Combinación generada</th><th>Resultado real</th><th>Aciertos</th></tr></thead><tbody>${r.results.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${x.combo.join('-')}</td><td>${x.actual.join('-')}</td><td><b>${x.hits}</b></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Sin evaluaciones.</div>`}
-    }
-    if(currentView==='importar'){
-      let parsed=[];const file=document.getElementById('csvFile'),preview=document.getElementById('csvPreview');
-      file.onchange=async()=>{parsed=file.files[0]?parseCSV(await file.files[0].text()):[];const cfg=GAMES[currentGame],valid=parsed.filter(x=>!validate(cfg,x.numbers,x.bonus));preview.innerHTML=parsed.length?`<div class="kpi-row"><div class="kpi"><span class="sub">Filas</span><strong>${parsed.length}</strong></div><div class="kpi"><span class="sub">Válidas</span><strong>${valid.length}</strong></div></div><div class="table-wrap"><table style="min-width:0"><thead><tr><th>Fecha</th><th>Números</th><th>Estado</th></tr></thead><tbody>${parsed.slice(0,20).map(x=>{const err=validate(cfg,x.numbers,x.bonus);return `<tr><td>${esc(x.date)}</td><td>${esc(x.numbers.join('-'))}</td><td>${err?`⚠ ${esc(err)}`:'✓ Válida'}</td></tr>`}).join('')}</tbody></table></div>`:`<div class="empty">No se detectaron filas.</div>`};
-      document.getElementById('sampleCsv').onclick=()=>download(`${currentGame}-plantilla.csv`,'fecha,numeros,adicional\n2026-08-02,"'+Array.from({length:GAMES[currentGame].count},(_,i)=>GAMES[currentGame].min+i).join('-')+'",','text/csv');
-      document.getElementById('importCsvBtn').onclick=()=>{const cfg=GAMES[currentGame];let added=0,invalid=0,dupes=0;parsed.forEach(x=>{const err=validate(cfg,x.numbers,x.bonus);if(err){invalid++;return}const duplicate=state.draws[currentGame].some(d=>d.date===x.date&&JSON.stringify(d.numbers)===JSON.stringify(x.numbers)&&d.bonus===x.bonus);if(duplicate){dupes++;return}state.draws[currentGame].push({id:crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random(),...x});added++});save();toast(`${added} importados · ${dupes} duplicados · ${invalid} inválidos`);render()}
-    }
-    if(currentView==='estadisticas'){
-      const sw=document.getElementById('statsWindow');if(sw)sw.onchange=()=>{const rows=drawsWindow(+sw.value),freq=freqFromRows(rows);document.getElementById('heatContainer').innerHTML=heatCells(freq);const f=Object.entries(freq).map(([n,c])=>({n:+n,c})).sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}
-    }
-    if(currentView==='favoritos')document.querySelectorAll('[data-unfavorite]').forEach(b=>b.onclick=()=>{state.favorites=state.favorites.filter(x=>x.id!==b.dataset.unfavorite);save();render()});
+
+  document.getElementById('simForm').onsubmit=e=>{
+    e.preventDefault();
+
+    const mode=document.getElementById('simMode').value,
+          train=+document.getElementById('simTrain').value,
+          r=runBacktest(mode,train),
+          cfg=GAMES[currentGame],
+          targetCount=cfg.pickCount||cfg.count;
+
+    document.getElementById('simOutput').innerHTML=
+      r.results.length
+      ? `<div class="kpi-row">
+          <div class="kpi">
+            <span class="sub">Pruebas</span>
+            <strong>${r.results.length}</strong>
+          </div>
+
+          <div class="kpi">
+            <span class="sub">Aciertos medios</span>
+            <strong>${r.avg.toFixed(4)}</strong>
+          </div>
+
+          <div class="kpi">
+            <span class="sub">Mejor resultado</span>
+            <strong>${r.best}/${targetCount}</strong>
+          </div>
+
+          <div class="kpi">
+            <span class="sub">Exactos</span>
+            <strong>${r.exact}</strong>
+          </div>
+        </div>
+
+        <div class="notice">
+          Puntuación descriptiva:
+          <span class="score">
+            ${Math.min(100,Math.round(r.avg/targetCount*100))}%
+          </span>
+        </div>`
+      : `<div class="empty">
+          Necesitas más de ${train} sorteos para evaluar.
+        </div>`;
+
+    document.getElementById('simTable').innerHTML=
+      r.results.length
+      ? `<div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Combinación generada</th>
+                <th>Resultado real</th>
+                <th>Aciertos</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${r.results.slice().reverse().map(x=>`
+                <tr>
+                  <td>${x.date}</td>
+                  <td>${x.combo.join('-')}</td>
+                  <td>${x.actual.join('-')}</td>
+                  <td><b>${Number(x.hits).toFixed(
+                    mode==='random' ? 2 : 0
+                  )}</b></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`
+      : `<div class="empty">Sin evaluaciones.</div>`;
+  };
+
+
+  const optimizeBtn=document.getElementById('optimizeWeightsBtn');
+
+  if(optimizeBtn){
+
+    optimizeBtn.onclick=()=>{
+
+      const train=+document.getElementById('simTrain').value;
+      const results=optimizeModelWeights(train,currentGame);
+      const out=document.getElementById('weightsOutput');
+
+      if(!results.length){
+        out.innerHTML=
+          `<div class="empty">
+            No hay suficientes sorteos para analizar.
+          </div>`;
+        return;
+      }
+
+      const targetCount=
+        GAMES[currentGame].pickCount||
+        GAMES[currentGame].count;
+
+      const best=results[0];
+
+      out.innerHTML=`
+
+        <div class="kpi-row">
+
+          <div class="kpi">
+            <span class="sub">Configuraciones</span>
+            <strong>${results.length}</strong>
+          </div>
+
+          <div class="kpi">
+            <span class="sub">Ventana</span>
+            <strong>${train}</strong>
+          </div>
+
+          <div class="kpi">
+            <span class="sub">Mejor promedio histórico</span>
+            <strong>${best.avg.toFixed(4)}</strong>
+          </div>
+
+          <div class="kpi">
+            <span class="sub">Configuración superior</span>
+            <strong>${best.name}</strong>
+          </div>
+
+        </div>
+
+
+        <div class="notice">
+          Mejor resultado histórico de esta comparación:
+          <strong>${best.name}</strong>
+
+          · Frecuencia
+          <strong>${Math.round(best.weights.long*100)}%</strong>
+
+          · Reciente
+          <strong>${Math.round(best.weights.recent*100)}%</strong>
+
+          · Atraso
+          <strong>${Math.round(best.weights.gap*100)}%</strong>
+
+          · Momentum
+          <strong>${Math.round(best.weights.momentum*100)}%</strong>
+        </div>
+
+
+        <div class="table-wrap">
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Modelo</th>
+                <th>Frecuencia</th>
+                <th>Reciente</th>
+                <th>Atraso</th>
+                <th>Momentum</th>
+                <th>Pruebas</th>
+                <th>Promedio</th>
+                <th>Mejor</th>
+                <th>Exactos</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              ${results.map((x,i)=>`
+
+                <tr>
+
+                  <td>
+                    <b>${i+1}</b>
+                  </td>
+
+                  <td>
+                    <b>${i===0?'★ ':''}${x.name}</b>
+                  </td>
+
+                  <td>
+                    ${Math.round(x.weights.long*100)}%
+                  </td>
+
+                  <td>
+                    ${Math.round(x.weights.recent*100)}%
+                  </td>
+
+                  <td>
+                    ${Math.round(x.weights.gap*100)}%
+                  </td>
+
+                  <td>
+                    ${Math.round(x.weights.momentum*100)}%
+                  </td>
+
+                  <td>
+                    ${x.tests}
+                  </td>
+
+                  <td>
+                    <b>${x.avg.toFixed(4)}</b>
+                  </td>
+
+                  <td>
+                    ${x.best}/${targetCount}
+                  </td>
+
+                  <td>
+                    ${x.exact}
+                  </td>
+
+                </tr>
+
+              `).join('')}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+
+        <div class="notice warn">
+          El primer lugar representa únicamente el mejor rendimiento
+          dentro de esta prueba histórica. No significa que esa
+          configuración aumente la probabilidad matemática de ganar
+          un sorteo futuro.
+        </div>
+
+      `;
+    };
   }
-  function bindFavoriteButtons(){document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const c=JSON.parse(decodeURIComponent(b.dataset.favorite));if(!state.favorites.some(x=>x.game===c.game&&JSON.stringify(x.numbers)===JSON.stringify(c.numbers)&&x.bonus===c.bonus)){state.favorites.push(c);save();toast('Combinación guardada')}else toast('Esa combinación ya está guardada')})}
+}
 
-  function render(){renderHeader();const view=document.getElementById('view');view.innerHTML={resumen:renderSummary,agregar:renderAdd,historial:renderHistory,estadisticas:renderStats,tendencias:renderTrends,patrones:renderPatterns,correlaciones:renderCorrelations,top100:renderTop100,comparar:renderCompare,rendimiento:renderPerformance,simulador:renderSimulator,importar:renderImport,generador:renderGenerator,favoritos:renderFavorites,prediccion:renderPrediction,senal:renderSignals,ranking:renderRanking,laboratorio:renderLaboratory,nube:renderCloudV5,bololoto:renderBoloLoto,instalar:renderInstall,datos:renderDataCenter,diagnostico:renderDiagnostic,ayuda:renderHelp}[currentView]();bind();requestAnimationFrame(()=>{if(currentView==='resumen')drawBarChart('activityChart',GAME_KEYS.map(k=>GAMES[k].short),GAME_KEYS.map(k=>(state.draws[k]||[]).length));if(currentView==='estadisticas'){const f=sortedFreq('desc').sort((a,b)=>a.n-b.n);drawBarChart('freqChart',f.map(x=>x.n),f.map(x=>x.c))}})}
 
-  function download(filename,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-  function downloadCSV(){const rows=[['fecha','numeros','adicional'],...state.draws[currentGame].map(d=>[d.date,d.numbers.join('-'),d.bonus??''])];download(`${currentGame}.csv`,rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'),'text/csv')}
-  document.getElementById('exportBtn').onclick=()=>download(`loteria-pr-backup-${today()}.json`,JSON.stringify(state,null,2));
-  document.getElementById('pdfBtn').onclick=()=>window.print();
-  document.getElementById('themeBtn').onclick=()=>applyTheme(document.body.classList.contains('light')?'dark':'light');
-  document.getElementById('excelBtn').onclick=()=>{const rows=[['Juego','Fecha','Números','Adicional']];GAME_KEYS.forEach(k=>state.draws[k].forEach(d=>rows.push([GAMES[k].label,d.date,d.numbers.join('-'),d.bonus??''])));const table='<table>'+rows.map((r,i)=>'<tr>'+r.map(v=>`<${i?'td':'th'}>${esc(v)}</${i?'td':'th'}>`).join('')+'</tr>').join('')+'</table>';download(`loteria-pr-${today()}.xls`,`<html><head><meta charset="utf-8">  <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Lotería PR">
-  <link rel="apple-touch-icon" href="./icon.svg">
-</head><body>${table}</body></html>`,'application/vnd.ms-excel')};
-  document.getElementById('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!data.draws)throw 0;state=Object.assign(base(),data);save();render();toast('Copia importada correctamente')}catch{toast('El archivo no es una copia válida')}e.target.value=''};
-  document.getElementById('resetBtn').onclick=()=>{if(confirm('Esto borrará todos los resultados y favoritos guardados en este navegador. ¿Continuar?')){state=base();save();render();toast('Datos reiniciados')}};
-  window.addEventListener('resize',()=>{if(currentView==='resumen'||currentView==='estadisticas')render()});
-  window.addEventListener('beforeinstallprompt',event=>{
+if(currentView==='importar'){
+  let parsed=[];
+  const file=document.getElementById('csvFile'),
+        preview=document.getElementById('csvPreview');
+
+  file.onchange=async()=>{
+    parsed=file.files[0]
+      ?parseCSV(await file.files[0].text())
+      :[];
+
+    const cfg=GAMES[currentGame],
+          valid=parsed.filter(x=>!validate(cfg,x.numbers,x.bonus));
+
+    preview.innerHTML=parsed.length
+      ? `<div class="kpi-row">
+          <div class="kpi">
+            <span class="sub">Filas</span>
+            <strong>${parsed.length}</strong>
+          </div>
+
+          <div class="kpi">
+            <span class="sub">Válidas</span>
+            <strong>${valid.length}</strong>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table style="min-width:0">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Números</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${parsed.slice(0,20).map(x=>{
+                const err=validate(cfg,x.numbers,x.bonus);
+
+                return `
+                  <tr>
+                    <td>${esc(x.date)}</td>
+                    <td>${esc(x.numbers.join('-'))}</td>
+                    <td>${err?`⚠ ${esc(err)}`:'✓ Válida'}</td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`
+      : `<div class="empty">No se detectaron filas.</div>`;
+  };
+
+
+  document.getElementById('sampleCsv').onclick=()=>
+    download(
+      `${currentGame}-plantilla.csv`,
+      'fecha,numeros,adicional\n2026-08-02,"'+
+      Array.from(
+        {length:GAMES[currentGame].count},
+        (_,i)=>GAMES[currentGame].min+i
+      ).join('-')+
+      '",',
+      'text/csv'
+    );
+
+
+  document.getElementById('importCsvBtn').onclick=()=>{
+
+    const cfg=GAMES[currentGame];
+
+    let added=0,
+        invalid=0,
+        dupes=0;
+
+    parsed.forEach(x=>{
+
+      const err=validate(cfg,x.numbers,x.bonus);
+
+      if(err){
+        invalid++;
+        return;
+      }
+
+      const duplicate=
+        state.draws[currentGame].some(
+          d=>
+            d.date===x.date&&
+            JSON.stringify(d.numbers)===JSON.stringify(x.numbers)&&
+            d.bonus===x.bonus
+        );
+
+      if(duplicate){
+        dupes++;
+        return;
+      }
+
+      state.draws[currentGame].push({
+        id:crypto.randomUUID
+          ?crypto.randomUUID()
+          :Date.now()+''+Math.random(),
+        ...x
+      });
+
+      added++;
+    });
+
+    save();
+
+    toast(
+      `${added} importados · ${dupes} duplicados · ${invalid} inválidos`
+    );
+
+    render();
+  };
+}
+
+
+if(currentView==='estadisticas'){
+
+  const sw=document.getElementById('statsWindow');
+
+  if(sw)sw.onchange=()=>{
+
+    const rows=drawsWindow(+sw.value),
+          freq=freqFromRows(rows);
+
+    document.getElementById('heatContainer').innerHTML=
+      heatCells(freq);
+
+    const f=Object.entries(freq)
+      .map(([n,c])=>({n:+n,c}))
+      .sort((a,b)=>a.n-b.n);
+
+    drawBarChart(
+      'freqChart',
+      f.map(x=>x.n),
+      f.map(x=>x.c)
+    );
+  };
+}
+
+
+if(currentView==='favoritos')
+  document
+    .querySelectorAll('[data-unfavorite]')
+    .forEach(
+      b=>b.onclick=()=>{
+        state.favorites=
+          state.favorites.filter(
+            x=>x.id!==b.dataset.unfavorite
+          );
+
+        save();
+        render();
+      }
+    );
+
+}
+
+
+function bindFavoriteButtons(){
+
+  document
+    .querySelectorAll('[data-favorite]')
+    .forEach(
+      b=>b.onclick=()=>{
+
+        const c=
+          JSON.parse(
+            decodeURIComponent(
+              b.dataset.favorite
+            )
+          );
+
+        if(
+          !state.favorites.some(
+            x=>
+              x.game===c.game&&
+              JSON.stringify(x.numbers)===
+              JSON.stringify(c.numbers)&&
+              x.bonus===c.bonus
+          )
+        ){
+          state.favorites.push(c);
+          save();
+          toast('Combinación guardada');
+        }else{
+          toast('Esa combinación ya está guardada');
+        }
+      }
+    );
+}
+
+
+function render(){
+
+  renderHeader();
+
+  const view=document.getElementById('view');
+
+  view.innerHTML={
+    resumen:renderSummary,
+    agregar:renderAdd,
+    historial:renderHistory,
+    estadisticas:renderStats,
+    tendencias:renderTrends,
+    patrones:renderPatterns,
+    correlaciones:renderCorrelations,
+    top100:renderTop100,
+    comparar:renderCompare,
+    rendimiento:renderPerformance,
+    simulador:renderSimulator,
+    importar:renderImport,
+    generador:renderGenerator,
+    favoritos:renderFavorites,
+    prediccion:renderPrediction,
+    senal:renderSignals,
+    ranking:renderRanking,
+    laboratorio:renderLaboratory,
+    nube:renderCloudV5,
+    bololoto:renderBoloLoto,
+    instalar:renderInstall,
+    datos:renderDataCenter,
+    diagnostico:renderDiagnostic,
+    ayuda:renderHelp
+  }[currentView]();
+
+  bind();
+
+  requestAnimationFrame(()=>{
+
+    if(currentView==='resumen')
+      drawBarChart(
+        'activityChart',
+        GAME_KEYS.map(k=>GAMES[k].short),
+        GAME_KEYS.map(k=>(state.draws[k]||[]).length)
+      );
+
+    if(currentView==='estadisticas'){
+
+      const f=sortedFreq('desc')
+        .sort((a,b)=>a.n-b.n);
+
+      drawBarChart(
+        'freqChart',
+        f.map(x=>x.n),
+        f.map(x=>x.c)
+      );
+    }
+  });
+}
+
+
+function download(
+  filename,
+  text,
+  type='application/json'
+){
+  const a=document.createElement('a');
+
+  a.href=URL.createObjectURL(
+    new Blob([text],{type})
+  );
+
+  a.download=filename;
+  a.click();
+
+  setTimeout(
+    ()=>URL.revokeObjectURL(a.href),
+    1000
+  );
+}
+
+
+function downloadCSV(){
+
+  const rows=[
+    ['fecha','numeros','adicional'],
+    ...state.draws[currentGame].map(
+      d=>[
+        d.date,
+        d.numbers.join('-'),
+        d.bonus??''
+      ]
+    )
+  ];
+
+  download(
+    `${currentGame}.csv`,
+    rows.map(
+      r=>r.map(
+        v=>`"${String(v).replaceAll('"','""')}"`
+      ).join(',')
+    ).join('\n'),
+    'text/csv'
+  );
+}
+
+
+document.getElementById('exportBtn').onclick=()=>
+  download(
+    `loteria-pr-backup-${today()}.json`,
+    JSON.stringify(state,null,2)
+  );
+
+
+document.getElementById('pdfBtn').onclick=
+  ()=>window.print();
+
+
+document.getElementById('themeBtn').onclick=
+  ()=>applyTheme(
+    document.body.classList.contains('light')
+      ?'dark'
+      :'light'
+  );
+
+
+document.getElementById('excelBtn').onclick=()=>{
+
+  const rows=[
+    ['Juego','Fecha','Números','Adicional']
+  ];
+
+  GAME_KEYS.forEach(
+    k=>state.draws[k].forEach(
+      d=>rows.push([
+        GAMES[k].label,
+        d.date,
+        d.numbers.join('-'),
+        d.bonus??''
+      ])
+    )
+  );
+
+  const table=
+    '<table>'+
+    rows.map(
+      (r,i)=>
+        '<tr>'+
+        r.map(
+          v=>`<${i?'td':'th'}>${esc(v)}</${i?'td':'th'}>`
+        ).join('')+
+        '</tr>'
+    ).join('')+
+    '</table>';
+
+  download(
+    `loteria-pr-${today()}.xls`,
+    `<html>
+      <head>
+        <meta charset="utf-8">
+        <link rel="manifest" href="./manifest.webmanifest">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Lotería PR">
+        <link rel="apple-touch-icon" href="./icon.svg">
+      </head>
+      <body>${table}</body>
+    </html>`,
+    'application/vnd.ms-excel'
+  );
+};
+
+
+document.getElementById('importFile').onchange=async e=>{
+
+  const file=e.target.files[0];
+
+  if(!file)return;
+
+  try{
+
+    const data=JSON.parse(
+      await file.text()
+    );
+
+    if(!data.draws)throw 0;
+
+    state=Object.assign(
+      base(),
+      data
+    );
+
+    save();
+    render();
+
+    toast(
+      'Copia importada correctamente'
+    );
+
+  }catch{
+
+    toast(
+      'El archivo no es una copia válida'
+    );
+  }
+
+  e.target.value='';
+};
+
+
+document.getElementById('resetBtn').onclick=()=>{
+
+  if(
+    confirm(
+      'Esto borrará todos los resultados y favoritos guardados en este navegador. ¿Continuar?'
+    )
+  ){
+    state=base();
+    save();
+    render();
+
+    toast(
+      'Datos reiniciados'
+    );
+  }
+};
+
+
+window.addEventListener(
+  'resize',
+  ()=>{
+    if(
+      currentView==='resumen'||
+      currentView==='estadisticas'
+    )
+      render();
+  }
+);
+
+
+window.addEventListener(
+  'beforeinstallprompt',
+  event=>{
     event.preventDefault();
     deferredInstallPrompt=event;
-  });
-  window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;toast('Aplicación instalada')});
-  window.addEventListener('online',()=>{if(currentView==='instalar')render()});
-  window.addEventListener('offline',()=>{if(currentView==='instalar')render()});
-  window.LoteriaDiagnosticsTools={
+  }
+);
+
+
+window.addEventListener(
+  'appinstalled',
+  ()=>{
+    deferredInstallPrompt=null;
+    toast('Aplicación instalada');
+  }
+);
+
+
+window.addEventListener(
+  'online',
+  ()=>{
+    if(currentView==='instalar')
+      render();
+  }
+);
+
+
+window.addEventListener(
+  'offline',
+  ()=>{
+    if(currentView==='instalar')
+      render();
+  }
+);
+
+
+window.LoteriaDiagnosticsTools={
   proGenerate,
   runBacktest,
   parseCSV,
   download,
   applyTheme
 };
-  registerServiceWorker();
-  initNav();render();
- async function checkAutoSync(){
-  const cfg=syncConfig(),meta=syncMeta();
 
-  if(!cfg.autoSync||!cfg.workerUrl)return;
+
+registerServiceWorker();
+initNav();
+render();
+
+
+async function checkAutoSync(){
+
+  const cfg=syncConfig(),
+        meta=syncMeta();
+
+  if(
+    !cfg.autoSync||
+    !cfg.workerUrl
+  )return;
 
   const elapsed=
-    Date.now()-new Date(meta.lastSyncAt||0).getTime();
+    Date.now()-
+    new Date(
+      meta.lastSyncAt||0
+    ).getTime();
 
-  if(elapsed>=cfg.syncIntervalMinutes*60000){
+  if(
+    elapsed>=
+    cfg.syncIntervalMinutes*60000
+  ){
     await runDataSync();
   }
 }
 
-setTimeout(checkAutoSync,1200);
-setInterval(checkAutoSync,60000);
+
+setTimeout(
+  checkAutoSync,
+  1200
+);
+
+setInterval(
+  checkAutoSync,
+  60000
+);
+
 })();
 
 </script>
